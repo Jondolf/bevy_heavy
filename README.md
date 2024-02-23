@@ -18,7 +18,7 @@ for things like physics simulations.
 
 ```rust
 use bevy_heavy::{ComputeMassProperties2d, MassProperties2d};
-use bevy_math::primitives::Cuboid;
+use bevy_math::primitives::Rectangle;
 
 let rectangle = Rectangle::new(2.0, 1.0);
 let density = 2.0;

@@ -38,8 +38,8 @@
 mod dim2;
 mod dim3;
 
-pub use dim2::MassProperties2d;
-pub use dim3::MassProperties3d;
+pub use dim2::{ComputeMassProperties2d, MassProperties2d};
+pub use dim3::{ComputeMassProperties3d, MassProperties3d, SymmetricEigen3};
 
 /// Returns the multiplicative inverse `1.0 / value` if `value` is non-zero,
 /// and `0.0` otherwise.
