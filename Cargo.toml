@@ -1,0 +1,17 @@
+[package]
+name = "bevy_heavy"
+version = "0.0.1"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["Joona Aalto <jondolf.dev@gmail.com>"]
+description = "Mass property computation for Bevy's geometric primitives."
+
+[features]
+default = []
+approx = ["bevy_math/approx"]
+
+[dev-dependencies]
+bevy_math = { version = "0.13", default-features = false, features = [
+    "approx",
+] }
+approx = "0.5"
