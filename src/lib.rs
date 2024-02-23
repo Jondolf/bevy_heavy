@@ -43,7 +43,7 @@ pub use dim3::MassProperties3d;
 
 /// Returns the multiplicative inverse `1.0 / value` if `value` is non-zero,
 /// and `0.0` otherwise.
-pub fn recip_or_zero(value: f32) -> f32 {
+pub(crate) fn recip_or_zero(value: f32) -> f32 {
     let recip = value.recip();
     if value.abs() > f32::EPSILON {
         recip

@@ -25,6 +25,8 @@ pub trait ComputeMassProperties2d {
 
 /// Mass properties in 2D.
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "bevy_reflect", derive(bevy_reflect::Reflect))]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct MassProperties2d {
     /// The multiplicative inverse of mass, `1.0 / mass`.
     pub inverse_mass: f32,
