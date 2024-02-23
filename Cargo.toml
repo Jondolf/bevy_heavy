@@ -10,8 +10,10 @@ description = "Mass property computation for Bevy's geometric primitives."
 default = []
 approx = ["bevy_math/approx"]
 
-[dev-dependencies]
+[dependencies]
 bevy_math = { version = "0.13", default-features = false, features = [
     "approx",
 ] }
+
+[dev-dependencies]
 approx = "0.5"
