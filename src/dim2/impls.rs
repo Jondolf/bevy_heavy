@@ -106,27 +106,35 @@ impl ComputeMassProperties2d for Capsule2d {
     }
 
     fn angular_inertia(&self, mass: f32) -> f32 {
-        // The rectangöe and hemicircle parts
-        let rect = Rectangle {
+        // The rectangle and hemicircle parts
+        let rectangle = Rectangle {
             half_size: Vec2::new(self.radius, self.half_length),
         };
+        let rectangle_height = rectangle.half_size.y * 2.0;
         let circle = Circle::new(self.radius);
 
-        let rect_area = rect.area();
+        // Areas
+        let rectangle_area = rectangle.area();
         let circle_area = circle.area();
 
-        let rect_inertia = rect.angular_inertia(1.0);
+        // Masses
+        let density = mass / (rectangle_area + circle_area);
+        let rectangle_mass = rectangle_area * density;
+        let circle_mass = circle_area * density;
+
+        // Principal inertias
+        let rectangle_inertia = rectangle.angular_inertia(1.0);
         let circle_inertia = circle.angular_inertia(1.0);
 
-        // TODO: Use mass directly instead of density
-        let density = mass / (rect_area + circle_area);
-        let mut inertia = (rect_inertia * rect_area + circle_inertia * circle_area) * density;
+        // Total inertia
+        let mut capsule_inertia = rectangle_inertia * rectangle_mass + circle_inertia * circle_mass;
 
-        let height = self.half_length * 2.0;
-        inertia +=
-            (height.powi(2) * 0.25 + height * self.radius * 3.0 / 8.0) * circle_area * density;
+        // Compensate for the hemicircles being away from the rotation axis using the parallel axis theorem.
+        capsule_inertia += (rectangle_height.powi(2) * 0.25
+            + rectangle_height * self.radius * 3.0 / 8.0)
+            * circle_mass;
 
-        inertia
+        capsule_inertia
     }
 
     fn center_of_mass(&self) -> Vec2 {
@@ -134,26 +142,34 @@ impl ComputeMassProperties2d for Capsule2d {
     }
 
     fn mass_properties(&self, density: f32) -> MassProperties2d {
-        // The rectangöe and hemicircle parts
-        let rect = Rectangle {
+        // The rectangle and hemicircle parts
+        let rectangle = Rectangle {
             half_size: Vec2::new(self.radius, self.half_length),
         };
+        let rectangle_height = rectangle.half_size.y * 2.0;
         let circle = Circle::new(self.radius);
 
-        let rect_area = rect.area();
+        // Areas
+        let rectangle_area = rectangle.area();
         let circle_area = circle.area();
 
-        let rect_inertia = rect.angular_inertia(1.0);
+        // Masses
+        let rectangle_mass = rectangle_area * density;
+        let circle_mass = circle_area * density;
+
+        // Principal inertias
+        let rectangle_inertia = rectangle.angular_inertia(1.0);
         let circle_inertia = circle.angular_inertia(1.0);
 
-        let mass = (rect_area + circle_area) * density;
-        let mut inertia = (rect_inertia * rect_area + circle_inertia * circle_area) * density;
+        // Total inertia
+        let mut capsule_inertia = rectangle_inertia * rectangle_mass + circle_inertia * circle_mass;
 
-        let height = self.half_length * 2.0;
-        inertia +=
-            (height.powi(2) * 0.25 + height * self.radius * 3.0 / 8.0) * circle_area * density;
+        // Compensate for the hemicircles being away from the rotation axis using the parallel axis theorem.
+        capsule_inertia += (rectangle_height.powi(2) * 0.25
+            + rectangle_height * self.radius * 3.0 / 8.0)
+            * circle_mass;
 
-        MassProperties2d::new(mass, inertia, Vec2::ZERO)
+        MassProperties2d::new(rectangle_mass + circle_mass, capsule_inertia, Vec2::ZERO)
     }
 }
 

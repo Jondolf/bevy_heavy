@@ -2,8 +2,6 @@
 //! for the [geometric primitives] in the [Bevy game engine][Bevy]. This is typically required
 //! for things like physics simulations.
 //!
-//! Currently, only 2D is supported.
-//!
 //! [geometric primitives]: https://docs.rs/bevy/latest/bevy/math/primitives/index.html
 //! [Bevy]: https://bevyengine.org
 //!
@@ -38,13 +36,16 @@
 #![warn(missing_docs)]
 
 mod dim2;
-pub use dim2::MassProperties2d;
+mod dim3;
 
-/// Returns the multiplicative inverse `1.0 / value` if `value` is greater than zero,
+pub use dim2::MassProperties2d;
+pub use dim3::MassProperties3d;
+
+/// Returns the multiplicative inverse `1.0 / value` if `value` is non-zero,
 /// and `0.0` otherwise.
 pub fn recip_or_zero(value: f32) -> f32 {
     let recip = value.recip();
-    if recip.abs() > f32::EPSILON {
+    if value.abs() > f32::EPSILON {
         recip
     } else {
         0.0
