@@ -7,6 +7,13 @@ for things like physics simulations.
 [geometric primitives]: https://docs.rs/bevy/latest/bevy/math/primitives/index.html
 [Bevy]: https://bevyengine.org
 
+## Features
+
+- `MassProperties2d` and `MassProperties3d` structs containing the mass, angular inertia, and local center of mass
+- Mass property computation for all of Bevy's [geometric primitives]
+- Eigensolver for symmetric 3x3 matrices
+- Support for `bevy_reflect` and `serde` through the `bevy_reflect` and `serialize` feature flags
+
 ## Example
 
 ```rust
