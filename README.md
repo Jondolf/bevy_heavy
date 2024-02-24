@@ -4,6 +4,9 @@
 for the [geometric primitives] in the [Bevy game engine][Bevy]. This is typically required
 for things like physics simulations.
 
+> **Warning**: `bevy_heavy` is WIP and not well tested yet. I will release it once there are adequate tests and docs,
+> and I've made sure it works integrated into a physics engine.
+
 [geometric primitives]: https://docs.rs/bevy/latest/bevy/math/primitives/index.html
 [Bevy]: https://bevyengine.org
 
