@@ -1,8 +1,8 @@
 use super::{ComputeMassProperties2d, MassProperties2d};
 use bevy_math::{
     primitives::{
-        BoxedPolygon, BoxedPolyline2d, Capsule2d, Circle, Ellipse, Line2d, Plane2d, Polygon,
-        Polyline2d, Rectangle, RegularPolygon, Segment2d, Triangle2d,
+        BoxedPolygon, BoxedPolyline2d, Capsule2d, Circle, Ellipse, Line2d, Measured2d, Plane2d,
+        Polygon, Polyline2d, Rectangle, RegularPolygon, Segment2d, Triangle2d,
     },
     Vec2,
 };

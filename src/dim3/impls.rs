@@ -1,8 +1,8 @@
 use super::{ComputeMassProperties3d, MassProperties3d};
 use bevy_math::{
     primitives::{
-        BoxedPolyline3d, Capsule3d, Cone, ConicalFrustum, Cuboid, Cylinder, Line3d, Plane3d,
-        Polyline3d, Segment3d, Sphere, Torus,
+        BoxedPolyline3d, Capsule3d, Cone, ConicalFrustum, Cuboid, Cylinder, Line3d, Measured3d,
+        Plane3d, Polyline3d, Segment3d, Sphere, Torus,
     },
     Vec3,
 };
