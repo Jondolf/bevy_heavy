@@ -1,8 +1,9 @@
 use super::{ComputeMassProperties2d, MassProperties2d};
 use bevy_math::{
     primitives::{
-        BoxedPolygon, BoxedPolyline2d, Capsule2d, Circle, Ellipse, Line2d, Measured2d, Plane2d,
-        Polygon, Polyline2d, Rectangle, RegularPolygon, Segment2d, Triangle2d,
+        Annulus, Arc2d, BoxedPolygon, BoxedPolyline2d, Capsule2d, Circle, CircularSector,
+        CircularSegment, Ellipse, Line2d, Measured2d, Plane2d, Polygon, Polyline2d, Rectangle,
+        RegularPolygon, Rhombus, Segment2d, Triangle2d,
     },
     Vec2,
 };
@@ -21,6 +22,61 @@ impl ComputeMassProperties2d for Circle {
     }
 }
 
+impl ComputeMassProperties2d for Arc2d {
+    fn mass(&self, _density: f32) -> f32 {
+        0.0
+    }
+
+    fn angular_inertia(&self, _mass: f32) -> f32 {
+        0.0
+    }
+
+    fn center_of_mass(&self) -> Vec2 {
+        Vec2::ZERO
+    }
+
+    fn mass_properties(&self, _density: f32) -> MassProperties2d {
+        MassProperties2d::ZERO
+    }
+}
+
+impl ComputeMassProperties2d for CircularSector {
+    fn mass(&self, density: f32) -> f32 {
+        self.area() * density
+    }
+
+    fn angular_inertia(&self, mass: f32) -> f32 {
+        let unit_inertia = 0.5 * self.radius().powi(4) * self.angle();
+        unit_inertia * mass
+    }
+
+    fn center_of_mass(&self) -> Vec2 {
+        let angle = self.angle();
+        let y = 2.0 * self.radius() * angle.sin() / (3.0 * angle);
+        Vec2::new(0.0, y)
+    }
+}
+
+impl ComputeMassProperties2d for CircularSegment {
+    fn mass(&self, density: f32) -> f32 {
+        self.area() * density
+    }
+
+    fn angular_inertia(&self, mass: f32) -> f32 {
+        let angle = self.angle();
+        let (sin, cos) = angle.sin_cos();
+        let unit_inertia =
+            self.radius().powi(4) / 4.0 * (angle - sin + 2.0 / 3.0 * sin * (1.0 - cos) / 2.0);
+        unit_inertia * mass
+    }
+
+    fn center_of_mass(&self) -> Vec2 {
+        let y = self.radius() * self.half_angle().sin().powi(3)
+            / (6.0 * self.half_angle() - self.angle().sin());
+        Vec2::new(0.0, y)
+    }
+}
+
 impl ComputeMassProperties2d for Ellipse {
     fn mass(&self, density: f32) -> f32 {
         self.area() * density
@@ -28,6 +84,20 @@ impl ComputeMassProperties2d for Ellipse {
 
     fn angular_inertia(&self, mass: f32) -> f32 {
         self.half_size.length_squared() / 4.0 * mass
+    }
+
+    fn center_of_mass(&self) -> Vec2 {
+        Vec2::ZERO
+    }
+}
+
+impl ComputeMassProperties2d for Annulus {
+    fn mass(&self, density: f32) -> f32 {
+        self.area() * density
+    }
+
+    fn angular_inertia(&self, mass: f32) -> f32 {
+        0.5 * mass * (self.outer_circle.radius.powi(2) + self.inner_circle.radius.powi(2))
     }
 
     fn center_of_mass(&self) -> Vec2 {
@@ -76,7 +146,21 @@ impl ComputeMassProperties2d for Rectangle {
     }
 
     fn angular_inertia(&self, mass: f32) -> f32 {
-        (self.half_size.x.powi(2) + self.half_size.y.powi(2)) / 3.0 * mass
+        self.half_size.length_squared() / 3.0 * mass
+    }
+
+    fn center_of_mass(&self) -> Vec2 {
+        Vec2::ZERO
+    }
+}
+
+impl ComputeMassProperties2d for Rhombus {
+    fn mass(&self, density: f32) -> f32 {
+        self.area() * density
+    }
+
+    fn angular_inertia(&self, mass: f32) -> f32 {
+        self.half_diagonals.length_squared() / 12.0 * mass
     }
 
     fn center_of_mass(&self) -> Vec2 {
