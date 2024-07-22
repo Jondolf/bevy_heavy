@@ -259,105 +259,112 @@ impl ComputeMassProperties2d for Capsule2d {
 
 impl<const N: usize> ComputeMassProperties2d for Polygon<N> {
     fn mass(&self, density: f32) -> f32 {
-        BoxedPolygon::new(self.vertices).mass(density)
+        // The polygon is assumed to be convex.
+        let area = convex_polygon_area(&self.vertices);
+        area * density
     }
 
     fn angular_inertia(&self, mass: f32) -> f32 {
-        BoxedPolygon::new(self.vertices).angular_inertia(mass)
+        convex_polygon_angular_inertia(&self.vertices, mass)
     }
 
     fn center_of_mass(&self) -> Vec2 {
-        BoxedPolygon::new(self.vertices).center_of_mass()
+        convex_polygon_area_and_com(&self.vertices).1
     }
 
     fn mass_properties(&self, density: f32) -> MassProperties2d {
-        BoxedPolygon::new(self.vertices).mass_properties(density)
+        convex_polygon_mass_properties(&self.vertices, density)
     }
 }
 
 impl ComputeMassProperties2d for BoxedPolygon {
     fn mass(&self, density: f32) -> f32 {
         // The polygon is assumed to be convex.
-        let area = convex_polygon_area(self);
+        let area = convex_polygon_area(&self.vertices);
         area * density
     }
 
     fn angular_inertia(&self, mass: f32) -> f32 {
-        // The polygon is assumed to be convex.
-        let (area, center_of_mass) = convex_polygon_area_and_com(self);
-
-        if area < f32::EPSILON {
-            return 0.0;
-        }
-
-        // Initialize polygon inertia.
-        let mut inertia = 0.0;
-
-        // Create a peekable iterator over the polygon vertices.
-        let mut iter = self.vertices.iter().peekable();
-        let first = **iter.peek().unwrap();
-
-        // Iterate through vertices, computing the sum of the areas of triangles.
-        // Each triangle is formed by the current vertex, next vertex, and the geometric center of the polygon.
-        while let Some(vertex) = iter.next() {
-            let triangle = Triangle2d::new(
-                *vertex,
-                iter.peek().copied().copied().unwrap_or(first),
-                center_of_mass,
-            );
-            inertia += triangle.angular_inertia(1.0) * triangle.area();
-        }
-
-        let density = mass / area;
-        inertia * density
+        convex_polygon_angular_inertia(&self.vertices, mass)
     }
 
     fn center_of_mass(&self) -> Vec2 {
-        convex_polygon_area_and_com(self).1
+        convex_polygon_area_and_com(&self.vertices).1
     }
 
     fn mass_properties(&self, density: f32) -> MassProperties2d {
-        // The polygon is assumed to be convex.
-        let (area, center_of_mass) = convex_polygon_area_and_com(self);
-
-        if area < f32::EPSILON {
-            return MassProperties2d::new(0.0, 0.0, center_of_mass);
-        }
-
-        // Initialize polygon inertia.
-        let mut inertia = 0.0;
-
-        // Create a peekable iterator over the polygon vertices.
-        let mut iter = self.vertices.iter().peekable();
-        let first = **iter.peek().unwrap();
-
-        // Iterate through vertices, computing the sum of the areas of triangles.
-        // Each triangle is formed by the current vertex, next vertex, and the geometric center of the polygon.
-        while let Some(vertex) = iter.next() {
-            let triangle = Triangle2d::new(
-                *vertex,
-                iter.peek().copied().copied().unwrap_or(first),
-                center_of_mass,
-            );
-            inertia += triangle.angular_inertia(1.0) * triangle.area();
-        }
-
-        MassProperties2d::new(area * density, inertia * density, center_of_mass)
+        convex_polygon_mass_properties(&self.vertices, density)
     }
 }
 
-fn convex_polygon_area(polygon: &BoxedPolygon) -> f32 {
-    let geometric_center = polygon
-        .vertices
-        .iter()
-        .fold(Vec2::ZERO, |acc, vtx| acc + *vtx)
-        / polygon.vertices.len() as f32;
+fn convex_polygon_mass_properties(vertices: &[Vec2], density: f32) -> MassProperties2d {
+    // The polygon is assumed to be convex.
+    let (area, center_of_mass) = convex_polygon_area_and_com(vertices);
+
+    if area < f32::EPSILON {
+        return MassProperties2d::new(0.0, 0.0, center_of_mass);
+    }
+
+    // Initialize polygon inertia.
+    let mut inertia = 0.0;
+
+    // Create a peekable iterator over the polygon vertices.
+    let mut iter = vertices.iter().peekable();
+    let first = **iter.peek().unwrap();
+
+    // Iterate through vertices, computing the sum of the areas of triangles.
+    // Each triangle is formed by the current vertex, next vertex, and the geometric center of the polygon.
+    while let Some(vertex) = iter.next() {
+        let triangle = Triangle2d::new(
+            *vertex,
+            iter.peek().copied().copied().unwrap_or(first),
+            center_of_mass,
+        );
+        inertia += triangle.angular_inertia(1.0) * triangle.area();
+    }
+
+    MassProperties2d::new(area * density, inertia * density, center_of_mass)
+}
+
+fn convex_polygon_angular_inertia(vertices: &[Vec2], mass: f32) -> f32 {
+    // The polygon is assumed to be convex.
+    let (area, center_of_mass) = convex_polygon_area_and_com(vertices);
+
+    if area < f32::EPSILON {
+        return 0.0;
+    }
+
+    // Initialize polygon inertia.
+    let mut inertia = 0.0;
+
+    // Create a peekable iterator over the polygon vertices.
+    let mut iter = vertices.iter().peekable();
+    let first = **iter.peek().unwrap();
+
+    // Iterate through vertices, computing the sum of the areas of triangles.
+    // Each triangle is formed by the current vertex, next vertex, and the geometric center of the polygon.
+    while let Some(vertex) = iter.next() {
+        let triangle = Triangle2d::new(
+            *vertex,
+            iter.peek().copied().copied().unwrap_or(first),
+            center_of_mass,
+        );
+        inertia += triangle.angular_inertia(1.0) * triangle.area();
+    }
+
+    let density = mass / area;
+    inertia * density
+}
+
+fn convex_polygon_area(vertices: &[Vec2]) -> f32 {
+    let geometric_center =
+        vertices.iter().fold(Vec2::ZERO, |acc, vtx| acc + *vtx) / vertices.len() as f32;
 
     // Initialize polygon area.
     let mut area = 0.0;
 
     // Create a peekable iterator over the polygon vertices.
-    let mut iter = polygon.vertices.iter().peekable();
+    let mut iter = vertices.iter().peekable();
     let Some(first) = iter.peek().copied().copied() else {
         return 0.0;
     };
@@ -378,19 +385,16 @@ fn convex_polygon_area(polygon: &BoxedPolygon) -> f32 {
     area
 }
 
-fn convex_polygon_area_and_com(polygon: &BoxedPolygon) -> (f32, Vec2) {
-    let geometric_center = polygon
-        .vertices
-        .iter()
-        .fold(Vec2::ZERO, |acc, vtx| acc + *vtx)
-        / polygon.vertices.len() as f32;
+fn convex_polygon_area_and_com(vertices: &[Vec2]) -> (f32, Vec2) {
+    let geometric_center =
+        vertices.iter().fold(Vec2::ZERO, |acc, vtx| acc + *vtx) / vertices.len() as f32;
 
     // Initialize polygon area and center.
     let mut area = 0.0;
     let mut center = Vec2::ZERO;
 
     // Create a peekable iterator over the polygon vertices.
-    let mut iter = polygon.vertices.iter().peekable();
+    let mut iter = vertices.iter().peekable();
     let Some(first) = iter.peek().copied().copied() else {
         return (0.0, Vec2::ZERO);
     };
