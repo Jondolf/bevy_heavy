@@ -1,4 +1,3 @@
-use crate::recip_or_zero;
 use bevy_math::{Mat3, Quat, Vec3};
 
 /// [`ComputeMassProperties3d`] implementations for 3D geometric primitives.
@@ -6,6 +5,8 @@ mod impls;
 
 mod eigen3;
 pub use eigen3::SymmetricEigen3;
+
+use crate::RecipOrZero;
 
 /// A trait for computing [`MassProperties3d`] for 3D objects.
 pub trait ComputeMassProperties3d {
@@ -86,10 +87,10 @@ impl MassProperties3d {
         center_of_mass: Vec3,
     ) -> Self {
         Self {
-            inverse_mass: recip_or_zero(mass),
+            inverse_mass: mass.recip_or_zero(),
             inverse_angular_inertia_sqrt: angular_inertia
                 .to_array()
-                .map(|val| recip_or_zero(val.sqrt()))
+                .map(|val| val.sqrt().recip_or_zero())
                 .into(),
             angular_inertia_local_frame,
             center_of_mass,
@@ -131,14 +132,14 @@ impl MassProperties3d {
 
     /// Returns the mass.
     pub fn mass(&self) -> f32 {
-        recip_or_zero(self.inverse_mass)
+        self.inverse_mass.recip_or_zero()
     }
 
     /// Returns the principal angular inerta.
     pub fn angular_inertia(&self) -> Vec3 {
         self.inverse_angular_inertia_sqrt
             .to_array()
-            .map(|val| recip_or_zero(val.powi(2)))
+            .map(|val| val.powi(2).recip_or_zero())
             .into()
     }
 
@@ -213,10 +214,10 @@ impl MassProperties3d {
 
     /// Sets the mass to the given `new_mass`. This also affects the angular inertia.
     pub fn set_mass(&mut self, new_mass: f32) {
-        let new_inverse_mass = recip_or_zero(new_mass);
+        let new_inverse_mass = new_mass.recip_or_zero();
 
         // Adjust angular inertia based on new mass.
-        let old_mass = recip_or_zero(self.inverse_mass);
+        let old_mass = self.inverse_mass.recip_or_zero();
         self.inverse_angular_inertia_sqrt *= new_inverse_mass.sqrt() * old_mass.sqrt();
 
         self.inverse_mass = new_inverse_mass;
@@ -236,7 +237,7 @@ impl std::ops::Add for MassProperties3d {
         let mass1 = self.mass();
         let mass2 = other.mass();
         let new_mass = mass1 + mass2;
-        let new_inverse_mass = recip_or_zero(new_mass);
+        let new_inverse_mass = new_mass.recip_or_zero();
 
         // The new center of mass is the weighted average of the centers of masses of `self` and `other`.
         let new_center_of_mass =
@@ -270,7 +271,7 @@ impl std::ops::Sub for MassProperties3d {
         let new_mass = mass1 - mass2;
 
         let new_inverse_mass = if new_mass >= f32::EPSILON {
-            recip_or_zero(mass1 + mass2)
+            (mass1 + mass2).recip_or_zero()
         } else {
             0.0
         };

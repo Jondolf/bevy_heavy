@@ -37,17 +37,11 @@
 
 mod dim2;
 mod dim3;
+mod mass;
+mod math_ext;
 
+pub use crate::dim2::AngularInertia2d;
 pub use dim2::{ComputeMassProperties2d, MassProperties2d};
 pub use dim3::{ComputeMassProperties3d, MassProperties3d, SymmetricEigen3};
-
-/// Returns the multiplicative inverse `1.0 / value` if `value` is non-zero,
-/// and `0.0` otherwise.
-pub(crate) fn recip_or_zero(value: f32) -> f32 {
-    let recip = value.recip();
-    if value.abs() > f32::EPSILON {
-        recip
-    } else {
-        0.0
-    }
-}
+pub use mass::{Mass, MassError};
+pub use math_ext::{MatExt, RecipOrZero};
