@@ -27,33 +27,6 @@ impl ComputeMassProperties2d for Circle {
     }
 }
 
-impl ComputeMassProperties2d for Arc2d {
-    #[inline]
-    fn mass(&self, _density: f32) -> Mass {
-        Mass::ZERO
-    }
-
-    #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
-        AngularInertia2d::ZERO
-    }
-
-    #[inline]
-    fn angular_inertia(&self, _mass: impl Into<Mass>) -> AngularInertia2d {
-        AngularInertia2d::ZERO
-    }
-
-    #[inline]
-    fn center_of_mass(&self) -> Vec2 {
-        Vec2::ZERO
-    }
-
-    #[inline]
-    fn mass_properties(&self, _density: f32) -> MassProperties2d {
-        MassProperties2d::ZERO
-    }
-}
-
 impl ComputeMassProperties2d for CircularSector {
     #[inline]
     fn mass(&self, density: f32) -> Mass {
@@ -484,115 +457,46 @@ fn convex_polygon_area_and_com(vertices: &[Vec2]) -> (f32, Vec2) {
     }
 }
 
-impl ComputeMassProperties2d for Plane2d {
-    #[inline]
-    fn mass(&self, _density: f32) -> Mass {
-        Mass::ZERO
-    }
+macro_rules! impl_zero_mass_properties_2d {
+    ($($shape:ty),*) => {
+        $(
+            impl ComputeMassProperties2d for $shape {
+                #[inline]
+                fn mass(&self, _density: f32) -> Mass {
+                    Mass::ZERO
+                }
 
-    #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
-        AngularInertia2d::ZERO
-    }
+                #[inline]
+                fn unit_angular_inertia(&self) -> AngularInertia2d {
+                    AngularInertia2d::ZERO
+                }
 
-    #[inline]
-    fn angular_inertia(&self, _mass: impl Into<Mass>) -> AngularInertia2d {
-        AngularInertia2d::ZERO
-    }
+                #[inline]
+                fn angular_inertia(&self, _mass: impl Into<Mass>) -> AngularInertia2d {
+                    AngularInertia2d::ZERO
+                }
 
-    #[inline]
-    fn center_of_mass(&self) -> Vec2 {
-        Vec2::ZERO
-    }
+                #[inline]
+                fn center_of_mass(&self) -> Vec2 {
+                    Vec2::ZERO
+                }
 
-    #[inline]
-    fn mass_properties(&self, _density: f32) -> MassProperties2d {
-        MassProperties2d::ZERO
-    }
+                #[inline]
+                fn mass_properties(&self, _density: f32) -> MassProperties2d {
+                    MassProperties2d::ZERO
+                }
+            }
+        )*
+    };
 }
 
-impl ComputeMassProperties2d for Line2d {
-    #[inline]
-    fn mass(&self, _density: f32) -> Mass {
-        Mass::ZERO
-    }
-
-    #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
-        AngularInertia2d::ZERO
-    }
-
-    #[inline]
-    fn angular_inertia(&self, _mass: impl Into<Mass>) -> AngularInertia2d {
-        AngularInertia2d::ZERO
-    }
-
-    #[inline]
-    fn center_of_mass(&self) -> Vec2 {
-        Vec2::ZERO
-    }
-
-    #[inline]
-    fn mass_properties(&self, _density: f32) -> MassProperties2d {
-        MassProperties2d::ZERO
-    }
-}
-
-impl ComputeMassProperties2d for Segment2d {
-    #[inline]
-    fn mass(&self, _density: f32) -> Mass {
-        Mass::ZERO
-    }
-
-    #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
-        AngularInertia2d::ZERO
-    }
-
-    #[inline]
-    fn angular_inertia(&self, _mass: impl Into<Mass>) -> AngularInertia2d {
-        AngularInertia2d::ZERO
-    }
-
-    #[inline]
-    fn center_of_mass(&self) -> Vec2 {
-        Vec2::ZERO
-    }
-
-    #[inline]
-    fn mass_properties(&self, _density: f32) -> MassProperties2d {
-        MassProperties2d::ZERO
-    }
-}
+impl_zero_mass_properties_2d!(Arc2d);
+impl_zero_mass_properties_2d!(Plane2d);
+impl_zero_mass_properties_2d!(Line2d);
+impl_zero_mass_properties_2d!(Segment2d);
+impl_zero_mass_properties_2d!(BoxedPolyline2d);
 
 impl<const N: usize> ComputeMassProperties2d for Polyline2d<N> {
-    #[inline]
-    fn mass(&self, _density: f32) -> Mass {
-        Mass::ZERO
-    }
-
-    #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
-        AngularInertia2d::ZERO
-    }
-
-    #[inline]
-    fn angular_inertia(&self, _mass: impl Into<Mass>) -> AngularInertia2d {
-        AngularInertia2d::ZERO
-    }
-
-    #[inline]
-    fn center_of_mass(&self) -> Vec2 {
-        Vec2::ZERO
-    }
-
-    #[inline]
-    fn mass_properties(&self, _density: f32) -> MassProperties2d {
-        MassProperties2d::ZERO
-    }
-}
-
-impl ComputeMassProperties2d for BoxedPolyline2d {
     #[inline]
     fn mass(&self, _density: f32) -> Mass {
         Mass::ZERO
