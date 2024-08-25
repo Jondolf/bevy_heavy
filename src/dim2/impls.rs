@@ -39,7 +39,7 @@ impl ComputeMassProperties2d for Arc2d {
     }
 
     #[inline]
-    fn angular_inertia(&self, _mass: Mass) -> AngularInertia2d {
+    fn angular_inertia(&self, _mass: impl Into<Mass>) -> AngularInertia2d {
         AngularInertia2d::ZERO
     }
 
@@ -496,7 +496,7 @@ impl ComputeMassProperties2d for Plane2d {
     }
 
     #[inline]
-    fn angular_inertia(&self, _mass: Mass) -> AngularInertia2d {
+    fn angular_inertia(&self, _mass: impl Into<Mass>) -> AngularInertia2d {
         AngularInertia2d::ZERO
     }
 
@@ -523,7 +523,7 @@ impl ComputeMassProperties2d for Line2d {
     }
 
     #[inline]
-    fn angular_inertia(&self, _mass: Mass) -> AngularInertia2d {
+    fn angular_inertia(&self, _mass: impl Into<Mass>) -> AngularInertia2d {
         AngularInertia2d::ZERO
     }
 
@@ -550,7 +550,7 @@ impl ComputeMassProperties2d for Segment2d {
     }
 
     #[inline]
-    fn angular_inertia(&self, _mass: Mass) -> AngularInertia2d {
+    fn angular_inertia(&self, _mass: impl Into<Mass>) -> AngularInertia2d {
         AngularInertia2d::ZERO
     }
 
@@ -577,7 +577,7 @@ impl<const N: usize> ComputeMassProperties2d for Polyline2d<N> {
     }
 
     #[inline]
-    fn angular_inertia(&self, _mass: Mass) -> AngularInertia2d {
+    fn angular_inertia(&self, _mass: impl Into<Mass>) -> AngularInertia2d {
         AngularInertia2d::ZERO
     }
 
@@ -604,7 +604,7 @@ impl ComputeMassProperties2d for BoxedPolyline2d {
     }
 
     #[inline]
-    fn angular_inertia(&self, _mass: Mass) -> AngularInertia2d {
+    fn angular_inertia(&self, _mass: impl Into<Mass>) -> AngularInertia2d {
         AngularInertia2d::ZERO
     }
 

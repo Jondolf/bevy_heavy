@@ -1,4 +1,4 @@
-use bevy_math::{Mat2, Vec2};
+use bevy_math::{Rot2, Vec2};
 
 mod angular_inertia;
 pub use angular_inertia::AngularInertia2d;
@@ -22,8 +22,8 @@ pub trait ComputeMassProperties2d {
     /// Equivalent to `mass * shape.unit_angular_inertia()`.
     #[inline]
     #[doc(alias = "moment_of_inertia")]
-    fn angular_inertia(&self, mass: Mass) -> AngularInertia2d {
-        mass * self.unit_angular_inertia()
+    fn angular_inertia(&self, mass: impl Into<Mass>) -> AngularInertia2d {
+        mass.into() * self.unit_angular_inertia()
     }
 
     /// Computes the local center of mass.
@@ -68,12 +68,16 @@ impl MassProperties2d {
     /// Creates a new [`MassProperties2d`] from a given mass, principal angular inertia,
     /// and center of mass in local space.
     #[inline]
-    pub fn new(mass: Mass, angular_inertia: AngularInertia2d, center_of_mass: Vec2) -> Self {
+    pub fn new(
+        mass: impl Into<Mass>,
+        angular_inertia: impl Into<AngularInertia2d>,
+        center_of_mass: Vec2,
+    ) -> Self {
         Self {
             center_of_mass,
-            inverse_mass: Mass::new(mass.recip_or_zero()),
+            inverse_mass: Mass::new(mass.into().recip_or_zero()),
             inverse_angular_inertia_sqrt: AngularInertia2d::new(
-                angular_inertia.sqrt().recip_or_zero(),
+                angular_inertia.into().sqrt().recip_or_zero(),
             ),
         }
     }
@@ -92,8 +96,8 @@ impl MassProperties2d {
 
     /// Returns the center of mass transformed into global space using `translation` and `rotation`.
     #[inline]
-    pub fn global_center_of_mass(&self, translation: Vec2, rotation: f32) -> Vec2 {
-        translation + Mat2::from_angle(rotation) * self.center_of_mass
+    pub fn global_center_of_mass(&self, translation: Vec2, rotation: Rot2) -> Vec2 {
+        translation + rotation * self.center_of_mass
     }
 
     /// Computes the principal angular inertia at a given `offset`.
@@ -107,7 +111,7 @@ impl MassProperties2d {
     ///
     /// In 2D, this only transforms the center of mass.
     #[inline]
-    pub fn transformed_by(mut self, translation: Vec2, rotation: f32) -> Self {
+    pub fn transformed_by(mut self, translation: Vec2, rotation: Rot2) -> Self {
         self.transform_by(translation, rotation);
         self
     }
@@ -116,14 +120,14 @@ impl MassProperties2d {
     ///
     /// In 2D, this only transforms the center of mass.
     #[inline]
-    pub fn transform_by(&mut self, translation: Vec2, rotation: f32) {
+    pub fn transform_by(&mut self, translation: Vec2, rotation: Rot2) {
         self.center_of_mass = self.global_center_of_mass(translation, rotation);
     }
 
     /// Sets the mass to the given `new_mass`. This also affects the angular inertia.
     #[inline]
-    pub fn set_mass(&mut self, new_mass: Mass) {
-        let new_inverse_mass = new_mass.inverse();
+    pub fn set_mass(&mut self, new_mass: impl Into<Mass>) {
+        let new_inverse_mass = new_mass.into().inverse();
 
         // Adjust angular inertia based on new mass.
         let old_mass = self.inverse_mass.recip_or_zero();

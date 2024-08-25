@@ -1,16 +1,18 @@
-use super::{ComputeMassProperties3d, MassProperties3d};
+use crate::Mass;
+
+use super::{AngularInertiaTensor, ComputeMassProperties3d, MassProperties3d};
 use bevy_math::{
     primitives::{
         BoxedPolyline3d, Capsule3d, Cone, ConicalFrustum, Cuboid, Cylinder, Line3d, Measured3d,
         Plane3d, Polyline3d, Segment3d, Sphere, Torus,
     },
-    Vec3,
+    Quat, Vec3,
 };
 
 impl ComputeMassProperties3d for Sphere {
     #[inline]
-    fn mass(&self, density: f32) -> f32 {
-        self.volume() * density
+    fn mass(&self, density: f32) -> Mass {
+        Mass::new(self.volume() * density)
     }
 
     #[inline]
@@ -26,8 +28,8 @@ impl ComputeMassProperties3d for Sphere {
 
 impl ComputeMassProperties3d for Cuboid {
     #[inline]
-    fn mass(&self, density: f32) -> f32 {
-        self.volume() * density
+    fn mass(&self, density: f32) -> Mass {
+        Mass::new(self.volume() * density)
     }
 
     #[inline]
@@ -46,8 +48,8 @@ impl ComputeMassProperties3d for Cuboid {
 
 impl ComputeMassProperties3d for Cylinder {
     #[inline]
-    fn mass(&self, density: f32) -> f32 {
-        self.volume() * density
+    fn mass(&self, density: f32) -> Mass {
+        Mass::new(self.volume() * density)
     }
 
     #[inline]
@@ -67,9 +69,9 @@ impl ComputeMassProperties3d for Cylinder {
 
 impl ComputeMassProperties3d for Capsule3d {
     #[inline]
-    fn mass(&self, density: f32) -> f32 {
+    fn mass(&self, density: f32) -> Mass {
         let volume = self.radius * (std::f32::consts::PI * self.radius + 4.0 * self.half_length);
-        volume * density
+        Mass::new(volume * density)
     }
 
     #[inline]
@@ -149,8 +151,8 @@ impl ComputeMassProperties3d for Capsule3d {
 
 impl ComputeMassProperties3d for Cone {
     #[inline]
-    fn mass(&self, density: f32) -> f32 {
-        self.volume() * density
+    fn mass(&self, density: f32) -> Mass {
+        Mass::new(self.volume() * density)
     }
 
     #[inline]
@@ -170,7 +172,7 @@ impl ComputeMassProperties3d for Cone {
 
 impl ComputeMassProperties3d for ConicalFrustum {
     #[inline]
-    fn mass(&self, density: f32) -> f32 {
+    fn mass(&self, density: f32) -> Mass {
         if self.radius_top == self.radius_bottom {
             Cylinder::new(self.radius_top, self.height).mass(density)
         } else {
@@ -193,7 +195,7 @@ impl ComputeMassProperties3d for ConicalFrustum {
                 std::f32::consts::PI / 3.0 * min_radius.powi(2) * (cone_height - self.height);
             let frustum_volume = volume1 - volume2;
 
-            frustum_volume * density
+            Mass::new(frustum_volume * density)
         }
     }
 
@@ -316,8 +318,8 @@ impl ComputeMassProperties3d for ConicalFrustum {
 
 impl ComputeMassProperties3d for Torus {
     #[inline]
-    fn mass(&self, density: f32) -> f32 {
-        self.volume() * density
+    fn mass(&self, density: f32) -> Mass {
+        Mass::new(self.volume() * density)
     }
 
     #[inline]
@@ -340,8 +342,8 @@ impl ComputeMassProperties3d for Torus {
 
 impl ComputeMassProperties3d for Plane3d {
     #[inline]
-    fn mass(&self, _density: f32) -> f32 {
-        0.0
+    fn mass(&self, _density: f32) -> Mass {
+        Mass::ZERO
     }
 
     #[inline]
@@ -350,8 +352,21 @@ impl ComputeMassProperties3d for Plane3d {
     }
 
     #[inline]
-    fn principal_angular_inertia(&self, _mass: f32) -> Vec3 {
+    fn principal_angular_inertia(&self, _mass: impl Into<Mass>) -> Vec3 {
         Vec3::ZERO
+    }
+
+    #[inline]
+    fn local_inertial_frame(&self) -> bevy_math::Quat {
+        Quat::IDENTITY
+    }
+
+    fn unit_angular_inertia_tensor(&self) -> AngularInertiaTensor {
+        AngularInertiaTensor::ZERO
+    }
+
+    fn angular_inertia_tensor(&self, _mass: impl Into<Mass>) -> AngularInertiaTensor {
+        AngularInertiaTensor::ZERO
     }
 
     #[inline]
@@ -367,8 +382,8 @@ impl ComputeMassProperties3d for Plane3d {
 
 impl ComputeMassProperties3d for Line3d {
     #[inline]
-    fn mass(&self, _density: f32) -> f32 {
-        0.0
+    fn mass(&self, _density: f32) -> Mass {
+        Mass::ZERO
     }
 
     #[inline]
@@ -377,8 +392,21 @@ impl ComputeMassProperties3d for Line3d {
     }
 
     #[inline]
-    fn principal_angular_inertia(&self, _mass: f32) -> Vec3 {
+    fn principal_angular_inertia(&self, _mass: impl Into<Mass>) -> Vec3 {
         Vec3::ZERO
+    }
+
+    #[inline]
+    fn local_inertial_frame(&self) -> bevy_math::Quat {
+        Quat::IDENTITY
+    }
+
+    fn unit_angular_inertia_tensor(&self) -> AngularInertiaTensor {
+        AngularInertiaTensor::ZERO
+    }
+
+    fn angular_inertia_tensor(&self, _mass: impl Into<Mass>) -> AngularInertiaTensor {
+        AngularInertiaTensor::ZERO
     }
 
     #[inline]
@@ -394,8 +422,8 @@ impl ComputeMassProperties3d for Line3d {
 
 impl ComputeMassProperties3d for Segment3d {
     #[inline]
-    fn mass(&self, _density: f32) -> f32 {
-        0.0
+    fn mass(&self, _density: f32) -> Mass {
+        Mass::ZERO
     }
 
     #[inline]
@@ -404,8 +432,21 @@ impl ComputeMassProperties3d for Segment3d {
     }
 
     #[inline]
-    fn principal_angular_inertia(&self, _mass: f32) -> Vec3 {
+    fn principal_angular_inertia(&self, _mass: impl Into<Mass>) -> Vec3 {
         Vec3::ZERO
+    }
+
+    #[inline]
+    fn local_inertial_frame(&self) -> bevy_math::Quat {
+        Quat::IDENTITY
+    }
+
+    fn unit_angular_inertia_tensor(&self) -> AngularInertiaTensor {
+        AngularInertiaTensor::ZERO
+    }
+
+    fn angular_inertia_tensor(&self, _mass: impl Into<Mass>) -> AngularInertiaTensor {
+        AngularInertiaTensor::ZERO
     }
 
     #[inline]
@@ -421,8 +462,8 @@ impl ComputeMassProperties3d for Segment3d {
 
 impl<const N: usize> ComputeMassProperties3d for Polyline3d<N> {
     #[inline]
-    fn mass(&self, _density: f32) -> f32 {
-        0.0
+    fn mass(&self, _density: f32) -> Mass {
+        Mass::ZERO
     }
 
     #[inline]
@@ -431,8 +472,21 @@ impl<const N: usize> ComputeMassProperties3d for Polyline3d<N> {
     }
 
     #[inline]
-    fn principal_angular_inertia(&self, _mass: f32) -> Vec3 {
+    fn principal_angular_inertia(&self, _mass: impl Into<Mass>) -> Vec3 {
         Vec3::ZERO
+    }
+
+    #[inline]
+    fn local_inertial_frame(&self) -> bevy_math::Quat {
+        Quat::IDENTITY
+    }
+
+    fn unit_angular_inertia_tensor(&self) -> AngularInertiaTensor {
+        AngularInertiaTensor::ZERO
+    }
+
+    fn angular_inertia_tensor(&self, _mass: impl Into<Mass>) -> AngularInertiaTensor {
+        AngularInertiaTensor::ZERO
     }
 
     #[inline]
@@ -448,8 +502,8 @@ impl<const N: usize> ComputeMassProperties3d for Polyline3d<N> {
 
 impl ComputeMassProperties3d for BoxedPolyline3d {
     #[inline]
-    fn mass(&self, _density: f32) -> f32 {
-        0.0
+    fn mass(&self, _density: f32) -> Mass {
+        Mass::ZERO
     }
 
     #[inline]
@@ -458,8 +512,21 @@ impl ComputeMassProperties3d for BoxedPolyline3d {
     }
 
     #[inline]
-    fn principal_angular_inertia(&self, _mass: f32) -> Vec3 {
+    fn principal_angular_inertia(&self, _mass: impl Into<Mass>) -> Vec3 {
         Vec3::ZERO
+    }
+
+    #[inline]
+    fn local_inertial_frame(&self) -> bevy_math::Quat {
+        Quat::IDENTITY
+    }
+
+    fn unit_angular_inertia_tensor(&self) -> AngularInertiaTensor {
+        AngularInertiaTensor::ZERO
+    }
+
+    fn angular_inertia_tensor(&self, _mass: impl Into<Mass>) -> AngularInertiaTensor {
+        AngularInertiaTensor::ZERO
     }
 
     #[inline]

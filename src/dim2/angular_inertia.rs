@@ -70,32 +70,6 @@ impl AngularInertia2d {
         }
     }
 
-    /// Creates a new [`AngularInertia2d`] from the given inverse angular inertia.
-    ///
-    /// If the `inverse_angular_inertia` is infinite, the returned angular inertia will be zero.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the inverse angular inertia is negative or NaN when `debug_assertions` are enabled.
-    #[inline]
-    pub fn from_inverse(inverse_angular_inertia: f32) -> Self {
-        Self::new(inverse_angular_inertia.recip_or_zero())
-    }
-
-    /// Tries to create a new [`AngularInertia2d`] from the given inverse angular inertia.
-    ///
-    /// Returns [`Err(AngularInertia2dError)`](AngularInertia2dError) if the inverse angular inertia is negative.
-    #[inline]
-    pub fn try_from_inverse(inverse_angular_inertia: f32) -> Result<Self, AngularInertia2dError> {
-        if inverse_angular_inertia < 0.0 {
-            Err(AngularInertia2dError::Negative)
-        } else if inverse_angular_inertia.is_nan() {
-            Err(AngularInertia2dError::Nan)
-        } else {
-            Ok(Self::new(inverse_angular_inertia.recip_or_zero()))
-        }
-    }
-
     /// Returns the angular inertia.
     #[inline]
     pub fn value(self) -> f32 {
@@ -108,17 +82,17 @@ impl AngularInertia2d {
         Self(self.0.recip_or_zero())
     }
 
-    /// Sets the angular inertia.
+    /// Sets the angular inertia to the given value.
     #[inline]
-    pub fn set(&mut self, angular_inertia: AngularInertia2d) {
-        *self = angular_inertia;
+    pub fn set(&mut self, angular_inertia: impl Into<AngularInertia2d>) {
+        *self = angular_inertia.into();
     }
 
     /// Computes the angular inertia shifted by the given offset, taking into account the given mass.
     #[inline]
-    pub fn shifted(&self, mass: Mass, offset: Vec2) -> Self {
-        if mass.value() > 0.0 && mass.is_finite() && offset != Vec2::ZERO {
-            Self::new(self.0 + offset.length_squared() * mass.value())
+    pub fn shifted(&self, mass: impl Into<Mass>, offset: Vec2) -> Self {
+        if offset != Vec2::ZERO {
+            Self::new(self.0 + offset.length_squared() * mass.into().value())
         } else {
             Self::new(self.0)
         }
@@ -126,12 +100,14 @@ impl AngularInertia2d {
 }
 
 impl From<f32> for AngularInertia2d {
+    #[inline]
     fn from(angular_inertia: f32) -> Self {
         Self::new(angular_inertia)
     }
 }
 
 impl From<AngularInertia2d> for f32 {
+    #[inline]
     fn from(angular_inertia: AngularInertia2d) -> Self {
         angular_inertia.0
     }

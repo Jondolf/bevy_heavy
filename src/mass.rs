@@ -69,32 +69,6 @@ impl Mass {
         }
     }
 
-    /// Creates a new [`Mass`] from the given inverse mass.
-    ///
-    /// If the `inverse_mass` is infinite, the returned mass will be zero.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the inverse mass is negative or NaN when `debug_assertions` are enabled.
-    #[inline]
-    pub fn from_inverse(inverse_mass: f32) -> Self {
-        Self::new(inverse_mass.recip_or_zero())
-    }
-
-    /// Tries to create a new [`Mass`] from the given inverse mass.
-    ///
-    /// Returns [`Err(MassError)`](MassError) if the inverse mass is negative or NaN.
-    #[inline]
-    pub fn try_from_inverse(inverse_mass: f32) -> Result<Self, MassError> {
-        if inverse_mass < 0.0 {
-            Err(MassError::Negative)
-        } else if inverse_mass.is_nan() {
-            Err(MassError::Nan)
-        } else {
-            Ok(Self(inverse_mass.recip_or_zero()))
-        }
-    }
-
     /// Returns the mass.
     #[inline]
     pub fn value(self) -> f32 {
@@ -109,8 +83,8 @@ impl Mass {
 
     /// Sets the mass to the given value.
     #[inline]
-    pub fn set(&mut self, mass: Mass) {
-        *self = mass;
+    pub fn set(&mut self, mass: impl Into<Mass>) {
+        *self = mass.into();
     }
 }
 
