@@ -8,62 +8,72 @@ use bevy_math::{
 };
 
 impl ComputeMassProperties3d for Sphere {
+    #[inline]
     fn mass(&self, density: f32) -> f32 {
         self.volume() * density
     }
 
-    fn angular_inertia(&self, mass: f32) -> Vec3 {
-        let inertia = self.radius.powi(2) / 2.0 / 5.0 * mass;
-        Vec3::splat(inertia)
+    #[inline]
+    fn unit_principal_angular_inertia(&self) -> Vec3 {
+        Vec3::splat(self.radius.powi(2) / 2.0 / 5.0)
     }
 
+    #[inline]
     fn center_of_mass(&self) -> Vec3 {
         Vec3::ZERO
     }
 }
 
 impl ComputeMassProperties3d for Cuboid {
+    #[inline]
     fn mass(&self, density: f32) -> f32 {
         self.volume() * density
     }
 
-    fn angular_inertia(&self, mass: f32) -> Vec3 {
+    #[inline]
+    fn unit_principal_angular_inertia(&self) -> Vec3 {
         let ix = self.half_size.x.powi(2) / 3.0;
         let iy = self.half_size.y.powi(2) / 3.0;
         let iz = self.half_size.z.powi(2) / 3.0;
-        Vec3::new(iy + iz, ix + iz, ix + iy) * mass
+        Vec3::new(iy + iz, ix + iz, ix + iy)
     }
 
+    #[inline]
     fn center_of_mass(&self) -> Vec3 {
         Vec3::ZERO
     }
 }
 
 impl ComputeMassProperties3d for Cylinder {
+    #[inline]
     fn mass(&self, density: f32) -> f32 {
         self.volume() * density
     }
 
-    fn angular_inertia(&self, mass: f32) -> Vec3 {
+    #[inline]
+    fn unit_principal_angular_inertia(&self) -> Vec3 {
         let radius_squared = self.radius.powi(2);
         let height_squared = self.half_height.powi(2) * 4.0;
         let principal = radius_squared / 2.0;
         let off_principal = (radius_squared * 3.0 + height_squared) / 12.0;
-        Vec3::new(off_principal, principal, off_principal) * mass
+        Vec3::new(off_principal, principal, off_principal)
     }
 
+    #[inline]
     fn center_of_mass(&self) -> Vec3 {
         Vec3::ZERO
     }
 }
 
 impl ComputeMassProperties3d for Capsule3d {
+    #[inline]
     fn mass(&self, density: f32) -> f32 {
         let volume = self.radius * (std::f32::consts::PI * self.radius + 4.0 * self.half_length);
         volume * density
     }
 
-    fn angular_inertia(&self, mass: f32) -> Vec3 {
+    #[inline]
+    fn unit_principal_angular_inertia(&self) -> Vec3 {
         // The cylinder and hemisphere parts
         let cylinder = Cylinder {
             radius: self.radius,
@@ -77,13 +87,13 @@ impl ComputeMassProperties3d for Capsule3d {
         let sphere_volume = sphere.volume();
 
         // Masses
-        let density = mass / (cylinder_volume + sphere_volume);
+        let density = 1.0 / (cylinder_volume + sphere_volume);
         let cylinder_mass = cylinder_volume * density;
         let sphere_mass = sphere_volume * density;
 
         // Principal inertias
-        let cylinder_inertia = cylinder.angular_inertia(1.0);
-        let sphere_inertia = sphere.angular_inertia(1.0);
+        let cylinder_inertia = cylinder.principal_angular_inertia(1.0);
+        let sphere_inertia = sphere.principal_angular_inertia(1.0);
 
         // Total inertia
         let mut capsule_inertia = cylinder_inertia * cylinder_mass + sphere_inertia * sphere_mass;
@@ -97,10 +107,12 @@ impl ComputeMassProperties3d for Capsule3d {
         capsule_inertia
     }
 
+    #[inline]
     fn center_of_mass(&self) -> Vec3 {
         Vec3::ZERO
     }
 
+    #[inline]
     fn mass_properties(&self, density: f32) -> MassProperties3d {
         // The cylinder and hemisphere parts
         let cylinder = Cylinder {
@@ -119,8 +131,8 @@ impl ComputeMassProperties3d for Capsule3d {
         let sphere_mass = sphere_volume * density;
 
         // Principal inertias
-        let cylinder_inertia = cylinder.angular_inertia(1.0);
-        let sphere_inertia = sphere.angular_inertia(1.0);
+        let cylinder_inertia = cylinder.principal_angular_inertia(1.0);
+        let sphere_inertia = sphere.principal_angular_inertia(1.0);
 
         // Total inertia
         let mut capsule_inertia = cylinder_inertia * cylinder_mass + sphere_inertia * sphere_mass;
@@ -136,24 +148,28 @@ impl ComputeMassProperties3d for Capsule3d {
 }
 
 impl ComputeMassProperties3d for Cone {
+    #[inline]
     fn mass(&self, density: f32) -> f32 {
         self.volume() * density
     }
 
-    fn angular_inertia(&self, mass: f32) -> Vec3 {
+    #[inline]
+    fn unit_principal_angular_inertia(&self) -> Vec3 {
         let radius_squared = self.radius.powi(2);
         let height_squared = self.height.powi(2);
         let principal = radius_squared * 3.0 / 10.0;
         let off_principal = radius_squared * 3.0 / 20.0 + height_squared * 3.0 / 80.0;
-        Vec3::new(off_principal, principal, off_principal) * mass
+        Vec3::new(off_principal, principal, off_principal)
     }
 
+    #[inline]
     fn center_of_mass(&self) -> Vec3 {
         Vec3::new(0.0, -self.height * 0.25, 0.0)
     }
 }
 
 impl ComputeMassProperties3d for ConicalFrustum {
+    #[inline]
     fn mass(&self, density: f32) -> f32 {
         if self.radius_top == self.radius_bottom {
             Cylinder::new(self.radius_top, self.height).mass(density)
@@ -181,9 +197,10 @@ impl ComputeMassProperties3d for ConicalFrustum {
         }
     }
 
-    fn angular_inertia(&self, mass: f32) -> Vec3 {
+    #[inline]
+    fn unit_principal_angular_inertia(&self) -> Vec3 {
         if self.radius_top == self.radius_bottom {
-            Cylinder::new(self.radius_top, self.height).angular_inertia(mass)
+            Cylinder::new(self.radius_top, self.height).unit_principal_angular_inertia()
         } else {
             let max_radius = self.radius_top.max(self.radius_bottom);
             let radii_squared = self.radius_top.powi(2) + self.radius_bottom.powi(2);
@@ -194,13 +211,14 @@ impl ComputeMassProperties3d for ConicalFrustum {
 
             // Compute the angular inertia.
             // FIXME: `off_principal` is the same as it is for the cone. Is this correct?
-            let principal = 1.0 / 12.0 * mass * (self.height.powi(2) + 3.0 * radii_squared);
+            let principal = 1.0 / 12.0 * (self.height.powi(2) + 3.0 * radii_squared);
             let off_principal = max_radius.powi(2) * 3.0 / 20.0 + cone_height.powi(2) * 3.0 / 80.0;
 
-            Vec3::new(off_principal, principal, off_principal) * mass
+            Vec3::new(off_principal, principal, off_principal)
         }
     }
 
+    #[inline]
     fn center_of_mass(&self) -> Vec3 {
         if self.radius_top == self.radius_bottom {
             Vec3::ZERO
@@ -242,6 +260,7 @@ impl ComputeMassProperties3d for ConicalFrustum {
         }
     }
 
+    #[inline]
     fn mass_properties(&self, density: f32) -> MassProperties3d {
         if self.radius_top == self.radius_bottom {
             Cylinder::new(self.radius_top, self.height).mass_properties(density)
@@ -296,112 +315,159 @@ impl ComputeMassProperties3d for ConicalFrustum {
 }
 
 impl ComputeMassProperties3d for Torus {
+    #[inline]
     fn mass(&self, density: f32) -> f32 {
         self.volume() * density
     }
 
-    fn angular_inertia(&self, mass: f32) -> Vec3 {
+    #[inline]
+    fn unit_principal_angular_inertia(&self) -> Vec3 {
         // Reference: https://en.wikipedia.org/wiki/List_of_moments_of_inertia
 
         let major_radius_squared = self.major_radius.powi(2);
         let minor_radius_squared = self.minor_radius.powi(2);
 
-        let principal = 0.25 * mass * (4.0 * major_radius_squared + 3.0 * minor_radius_squared);
-        let off_principal =
-            1.0 / 8.0 * mass * (4.0 * major_radius_squared + 5.0 * minor_radius_squared);
+        let principal = 0.25 * (4.0 * major_radius_squared + 3.0 * minor_radius_squared);
+        let off_principal = 1.0 / 8.0 * (4.0 * major_radius_squared + 5.0 * minor_radius_squared);
         Vec3::new(off_principal, principal, off_principal)
     }
 
+    #[inline]
     fn center_of_mass(&self) -> Vec3 {
         Vec3::ZERO
     }
 }
 
 impl ComputeMassProperties3d for Plane3d {
+    #[inline]
     fn mass(&self, _density: f32) -> f32 {
         0.0
     }
 
-    fn angular_inertia(&self, _mass: f32) -> Vec3 {
+    #[inline]
+    fn unit_principal_angular_inertia(&self) -> Vec3 {
         Vec3::ZERO
     }
 
+    #[inline]
+    fn principal_angular_inertia(&self, _mass: f32) -> Vec3 {
+        Vec3::ZERO
+    }
+
+    #[inline]
     fn center_of_mass(&self) -> Vec3 {
         Vec3::ZERO
     }
 
+    #[inline]
     fn mass_properties(&self, _density: f32) -> MassProperties3d {
         MassProperties3d::ZERO
     }
 }
 
 impl ComputeMassProperties3d for Line3d {
+    #[inline]
     fn mass(&self, _density: f32) -> f32 {
         0.0
     }
 
-    fn angular_inertia(&self, _mass: f32) -> Vec3 {
+    #[inline]
+    fn unit_principal_angular_inertia(&self) -> Vec3 {
         Vec3::ZERO
     }
 
+    #[inline]
+    fn principal_angular_inertia(&self, _mass: f32) -> Vec3 {
+        Vec3::ZERO
+    }
+
+    #[inline]
     fn center_of_mass(&self) -> Vec3 {
         Vec3::ZERO
     }
 
+    #[inline]
     fn mass_properties(&self, _density: f32) -> MassProperties3d {
         MassProperties3d::ZERO
     }
 }
 
 impl ComputeMassProperties3d for Segment3d {
+    #[inline]
     fn mass(&self, _density: f32) -> f32 {
         0.0
     }
 
-    fn angular_inertia(&self, _mass: f32) -> Vec3 {
+    #[inline]
+    fn unit_principal_angular_inertia(&self) -> Vec3 {
         Vec3::ZERO
     }
 
+    #[inline]
+    fn principal_angular_inertia(&self, _mass: f32) -> Vec3 {
+        Vec3::ZERO
+    }
+
+    #[inline]
     fn center_of_mass(&self) -> Vec3 {
         Vec3::ZERO
     }
 
+    #[inline]
     fn mass_properties(&self, _density: f32) -> MassProperties3d {
         MassProperties3d::ZERO
     }
 }
 
 impl<const N: usize> ComputeMassProperties3d for Polyline3d<N> {
+    #[inline]
     fn mass(&self, _density: f32) -> f32 {
         0.0
     }
 
-    fn angular_inertia(&self, _mass: f32) -> Vec3 {
+    #[inline]
+    fn unit_principal_angular_inertia(&self) -> Vec3 {
         Vec3::ZERO
     }
 
+    #[inline]
+    fn principal_angular_inertia(&self, _mass: f32) -> Vec3 {
+        Vec3::ZERO
+    }
+
+    #[inline]
     fn center_of_mass(&self) -> Vec3 {
         Vec3::ZERO
     }
 
+    #[inline]
     fn mass_properties(&self, _density: f32) -> MassProperties3d {
         MassProperties3d::ZERO
     }
 }
 
 impl ComputeMassProperties3d for BoxedPolyline3d {
+    #[inline]
     fn mass(&self, _density: f32) -> f32 {
         0.0
     }
 
-    fn angular_inertia(&self, _mass: f32) -> Vec3 {
+    #[inline]
+    fn unit_principal_angular_inertia(&self) -> Vec3 {
         Vec3::ZERO
     }
 
+    #[inline]
+    fn principal_angular_inertia(&self, _mass: f32) -> Vec3 {
+        Vec3::ZERO
+    }
+
+    #[inline]
     fn center_of_mass(&self) -> Vec3 {
         Vec3::ZERO
     }
 
+    #[inline]
     fn mass_properties(&self, _density: f32) -> MassProperties3d {
         MassProperties3d::ZERO
     }

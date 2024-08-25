@@ -267,40 +267,6 @@ impl ComputeMassProperties2d for Capsule2d {
     }
 
     #[inline]
-    fn angular_inertia(&self, mass: Mass) -> AngularInertia2d {
-        // The rectangle and hemicircle parts
-        let rectangle = Rectangle {
-            half_size: Vec2::new(self.radius, self.half_length),
-        };
-        let rectangle_height = rectangle.half_size.y * 2.0;
-        let circle = Circle::new(self.radius);
-
-        // Areas
-        let rectangle_area = rectangle.area();
-        let circle_area = circle.area();
-
-        // Masses
-        let density = mass / (rectangle_area + circle_area);
-        let rectangle_mass = rectangle_area * density;
-        let circle_mass = circle_area * density;
-
-        // Principal inertias
-        let rectangle_inertia = rectangle.angular_inertia(Mass::ONE);
-        let circle_inertia = circle.angular_inertia(Mass::ONE);
-
-        // Total inertia
-        let mut capsule_inertia = rectangle_mass * rectangle_inertia + circle_mass * circle_inertia;
-
-        // Compensate for the hemicircles being away from the rotation axis using the parallel axis theorem.
-        capsule_inertia += AngularInertia2d::new(
-            (rectangle_height.powi(2) * 0.25 + rectangle_height * self.radius * 3.0 / 8.0)
-                * *circle_mass,
-        );
-
-        capsule_inertia
-    }
-
-    #[inline]
     fn center_of_mass(&self) -> Vec2 {
         Vec2::ZERO
     }

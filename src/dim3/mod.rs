@@ -13,12 +13,23 @@ pub trait ComputeMassProperties3d {
     /// Computes the mass of the object with a given `density`.
     fn mass(&self, density: f32) -> f32;
 
-    /// Computes the angular inertia corresponding to the given `mass`.
-    #[doc(alias = "moment_of_inertia")]
-    fn angular_inertia(&self, mass: f32) -> Vec3;
+    /// Computes the principal angular inertia corresponding to a unit mass.
+    #[doc(alias = "principal_unit_moment_of_inertia")]
+    fn unit_principal_angular_inertia(&self) -> Vec3;
 
-    /// Computes the angular inertia local frame.
-    fn angular_inertia_local_frame(&self) -> Quat {
+    /// Computes the principal angular inertia corresponding to the given `mass`.
+    #[inline]
+    #[doc(alias = "principal_moment_of_inertia")]
+    fn principal_angular_inertia(&self, mass: f32) -> Vec3 {
+        mass * self.unit_principal_angular_inertia()
+    }
+
+    /// Computes the orientation of the inertial frame used by the principal axes of inertia in local space.
+    ///
+    /// For most primitive shapes, this returns an identity quaternion, which means that the principal axes
+    /// are aligned with the object's XYZ axes.
+    #[inline]
+    fn local_inertial_frame(&self) -> Quat {
         Quat::IDENTITY
     }
 
@@ -26,12 +37,13 @@ pub trait ComputeMassProperties3d {
     fn center_of_mass(&self) -> Vec3;
 
     /// Computes the [`MassProperties3d`] with a given `density`.
+    #[inline]
     fn mass_properties(&self, density: f32) -> MassProperties3d {
         let mass = self.mass(density);
         MassProperties3d::new_with_local_frame(
             mass,
-            self.angular_inertia(mass),
-            self.angular_inertia_local_frame(),
+            self.principal_angular_inertia(mass),
+            self.local_inertial_frame(),
             self.center_of_mass(),
         )
     }

@@ -13,7 +13,7 @@ pub trait ComputeMassProperties2d {
     /// Computes the mass of the object with a given `density`.
     fn mass(&self, density: f32) -> Mass;
 
-    /// Computes the angular inertia, assuming unit mass.
+    /// Computes the angular inertia corresponding to a unit mass.
     #[doc(alias = "unit_moment_of_inertia")]
     fn unit_angular_inertia(&self) -> AngularInertia2d;
 
