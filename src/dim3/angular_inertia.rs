@@ -390,6 +390,22 @@ impl MulAssign<Mass> for AngularInertiaTensor {
     }
 }
 
+impl Div<Mass> for AngularInertiaTensor {
+    type Output = AngularInertiaTensor;
+
+    #[inline]
+    fn div(self, mass: Mass) -> AngularInertiaTensor {
+        AngularInertiaTensor(self.0 / *mass)
+    }
+}
+
+impl DivAssign<Mass> for AngularInertiaTensor {
+    #[inline]
+    fn div_assign(&mut self, mass: Mass) {
+        self.0 /= *mass;
+    }
+}
+
 impl Mul<AngularInertiaTensor> for Quat {
     type Output = AngularInertiaTensor;
 

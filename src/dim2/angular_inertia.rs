@@ -185,3 +185,19 @@ impl MulAssign<Mass> for AngularInertia2d {
         self.0 *= *mass;
     }
 }
+
+impl Div<Mass> for AngularInertia2d {
+    type Output = AngularInertia2d;
+
+    #[inline]
+    fn div(self, mass: Mass) -> AngularInertia2d {
+        AngularInertia2d(self.0 / *mass)
+    }
+}
+
+impl DivAssign<Mass> for AngularInertia2d {
+    #[inline]
+    fn div_assign(&mut self, mass: Mass) {
+        self.0 /= *mass;
+    }
+}

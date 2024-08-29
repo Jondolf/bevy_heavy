@@ -28,7 +28,11 @@
 //! let global_center_of_mass = mass_props.global_center_of_mass(Vec2::new(5.0, 7.5));
 //!
 //! // You can also add and subtract mass properties.
-//! let mass_props_2 = MassProperties2d::new(1.0, 0.5, Vec2::new(0.0, 1.0));
+//! let mass_props_2 = MassProperties2d::new(
+//!     Mass::new(1.0),
+//!     AngularInertia2d::new(0.5),
+//!     Vec2::new(0.0, 1.0),
+//! );
 //! let sum = mass_props + mass_props_2;
 //! assert_eq!(sum - mass_props_2, mass_props);
 //! ```

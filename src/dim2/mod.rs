@@ -1,9 +1,9 @@
-use bevy_math::{Rot2, Vec2};
+use bevy_math::{Isometry2d, Vec2};
 
 mod angular_inertia;
 pub use angular_inertia::AngularInertia2d;
 
-use crate::{Mass, RecipOrZero};
+use crate::Mass;
 
 /// [`ComputeMassProperties2d`] implementations for 2D geometric primitives.
 mod impls;
@@ -37,15 +37,18 @@ pub trait ComputeMassProperties2d {
     }
 }
 
-/// Mass properties in 2D.
+/// The [mass], [angular inertia], and local center of mass of an object in 2D space.
+///
+/// [mass]: Mass
+/// [angular inertia]: AngularInertia2d
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "bevy_reflect", derive(bevy_reflect::Reflect))]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct MassProperties2d {
-    /// The inverse mass, `1.0 / mass`.
-    pub inverse_mass: Mass,
-    /// The inverse of the angular inertia along the principal axis, `(1.0 / inertia).sqrt()`.
-    pub inverse_angular_inertia_sqrt: AngularInertia2d,
+    /// The mass.
+    pub mass: Mass,
+    /// The angular inertia along the principal axis.
+    pub angular_inertia: AngularInertia2d,
     /// The local center of mass.
     pub center_of_mass: Vec2,
 }
@@ -60,8 +63,8 @@ impl Default for MassProperties2d {
 impl MassProperties2d {
     /// Zero mass and angular inertia.
     pub const ZERO: Self = Self {
-        inverse_mass: Mass::INFINITY,
-        inverse_angular_inertia_sqrt: AngularInertia2d::ZERO,
+        mass: Mass::ZERO,
+        angular_inertia: AngularInertia2d::ZERO,
         center_of_mass: Vec2::ZERO,
     };
 
@@ -74,66 +77,60 @@ impl MassProperties2d {
         center_of_mass: Vec2,
     ) -> Self {
         Self {
+            mass: mass.into(),
+            angular_inertia: angular_inertia.into(),
             center_of_mass,
-            inverse_mass: Mass::new(mass.into().recip_or_zero()),
-            inverse_angular_inertia_sqrt: AngularInertia2d::new(
-                angular_inertia.into().sqrt().recip_or_zero(),
-            ),
         }
     }
 
-    /// Returns the mass.
+    /// Returns the center of mass transformed into global space using the given [isometry].
+    ///
+    /// [isometry]: Isometry2d
     #[inline]
-    pub fn mass(&self) -> Mass {
-        self.inverse_mass.inverse()
+    pub fn global_center_of_mass(&self, isometry: Isometry2d) -> Vec2 {
+        isometry * self.center_of_mass
     }
 
-    /// Returns the principal angular inerta.
-    #[inline]
-    pub fn angular_inertia(&self) -> AngularInertia2d {
-        AngularInertia2d::new(self.inverse_angular_inertia_sqrt.powi(2).recip_or_zero())
-    }
-
-    /// Returns the center of mass transformed into global space using `translation` and `rotation`.
-    #[inline]
-    pub fn global_center_of_mass(&self, translation: Vec2, rotation: Rot2) -> Vec2 {
-        translation + rotation * self.center_of_mass
-    }
-
-    /// Computes the principal angular inertia at a given `offset`.
-    #[inline]
-    pub fn shifted_angular_inertia(&self, offset: Vec2) -> AngularInertia2d {
-        AngularInertia2d::new(self.inverse_angular_inertia_sqrt.powi(2).recip_or_zero())
-            .shifted(self.inverse_mass.inverse(), offset)
-    }
-
-    /// Returns the mass properties transformed by `translation` and `rotation`.
+    /// Returns the mass properties transformed by the given [isometry].
     ///
     /// In 2D, this only transforms the center of mass.
+    ///
+    /// [isometry]: Isometry2d
     #[inline]
-    pub fn transformed_by(mut self, translation: Vec2, rotation: Rot2) -> Self {
-        self.transform_by(translation, rotation);
+    pub fn transformed_by(mut self, isometry: Isometry2d) -> Self {
+        self.transform_by(isometry);
         self
     }
 
-    /// Transforms the mass properties by `translation` and `rotation`.
+    /// Transforms the mass properties by the given [isometry].
     ///
     /// In 2D, this only transforms the center of mass.
+    ///
+    /// [isometry]: Isometry2d
     #[inline]
-    pub fn transform_by(&mut self, translation: Vec2, rotation: Rot2) {
-        self.center_of_mass = self.global_center_of_mass(translation, rotation);
+    pub fn transform_by(&mut self, isometry: Isometry2d) {
+        self.center_of_mass = self.global_center_of_mass(isometry);
+    }
+
+    /// Returns the mass propeorties with the inverse of mass and angular inertia.
+    pub fn inverse(&self) -> Self {
+        Self {
+            mass: self.mass.inverse(),
+            angular_inertia: self.angular_inertia.inverse(),
+            center_of_mass: self.center_of_mass,
+        }
     }
 
     /// Sets the mass to the given `new_mass`. This also affects the angular inertia.
     #[inline]
     pub fn set_mass(&mut self, new_mass: impl Into<Mass>) {
-        let new_inverse_mass = new_mass.into().inverse();
+        let new_mass = new_mass.into();
 
         // Adjust angular inertia based on new mass.
-        let old_mass = self.inverse_mass.recip_or_zero();
-        self.inverse_angular_inertia_sqrt *= new_inverse_mass.sqrt() * old_mass.sqrt();
+        self.angular_inertia /= self.mass;
+        self.angular_inertia *= new_mass;
 
-        self.inverse_mass = new_inverse_mass;
+        self.mass = new_mass;
     }
 }
 
@@ -148,23 +145,27 @@ impl std::ops::Add for MassProperties2d {
             return self;
         }
 
-        let mass1 = self.mass();
-        let mass2 = other.mass();
-        let new_inverse_mass = (mass1 + mass2).inverse();
+        let mass1 = self.mass;
+        let mass2 = other.mass;
+        let new_mass = mass1 + mass2;
 
         // The new center of mass is the weighted average of the centers of masses of `self` and `other`.
         let new_center_of_mass = (self.center_of_mass * mass1.value()
             + other.center_of_mass * mass2.value())
-            * new_inverse_mass.value();
+            / new_mass.value();
 
         // Compute the new principal angular inertia, taking the new center of mass into account.
-        let inertia1 = self.shifted_angular_inertia(new_center_of_mass - self.center_of_mass);
-        let inertia2 = self.shifted_angular_inertia(new_center_of_mass - other.center_of_mass);
-        let new_inertia = inertia1 + inertia2;
+        let i1 = self
+            .angular_inertia
+            .shifted(self.mass, new_center_of_mass - self.center_of_mass);
+        let i2 = self
+            .angular_inertia
+            .shifted(self.mass, new_center_of_mass - other.center_of_mass);
+        let new_angular_inertia = i1 + i2;
 
         Self {
-            inverse_mass: new_inverse_mass,
-            inverse_angular_inertia_sqrt: AngularInertia2d::new(new_inertia.sqrt().recip_or_zero()),
+            mass: new_mass,
+            angular_inertia: new_angular_inertia,
             center_of_mass: new_center_of_mass,
         }
     }
@@ -186,29 +187,33 @@ impl std::ops::Sub for MassProperties2d {
             return self;
         }
 
-        let mass1 = self.mass();
-        let mass2 = other.mass();
-        let new_mass = mass1.value() - mass2.value();
-
-        let new_inverse_mass = if new_mass >= f32::EPSILON {
-            (mass1 + mass2).inverse()
-        } else {
-            Mass::INFINITY
+        let mass1 = self.mass;
+        let mass2 = other.mass;
+        let Ok(new_mass) = Mass::try_new(mass1.value() - mass2.value()) else {
+            return Self {
+                center_of_mass: self.center_of_mass,
+                ..Self::ZERO
+            };
         };
 
         // The new center of mass is the negated weighted average of the centers of masses of `self` and `other`.
         let new_center_of_mass = (self.center_of_mass * mass1.value()
             - other.center_of_mass * mass2.value())
-            * new_inverse_mass.value();
+            / new_mass.value();
 
         // Compute the new principal angular inertia, taking the new center of mass into account.
-        let inertia1 = self.shifted_angular_inertia(new_center_of_mass - self.center_of_mass);
-        let inertia2 = self.shifted_angular_inertia(new_center_of_mass - other.center_of_mass);
-        let new_inertia = inertia1.value() - inertia2.value();
+        let i1 = self
+            .angular_inertia
+            .shifted(mass1, new_center_of_mass - self.center_of_mass);
+        let i2 = self
+            .angular_inertia
+            .shifted(mass1, new_center_of_mass - other.center_of_mass);
+        let new_angular_inertia =
+            AngularInertia2d::try_new(i1.value() - i2.value()).unwrap_or_default();
 
         Self {
-            inverse_mass: new_inverse_mass,
-            inverse_angular_inertia_sqrt: AngularInertia2d::new(new_inertia.sqrt().recip_or_zero()),
+            mass: new_mass,
+            angular_inertia: new_angular_inertia,
             center_of_mass: new_center_of_mass,
         }
     }
