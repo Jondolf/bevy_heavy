@@ -7,6 +7,7 @@ use super::SymmetricEigen3;
 
 // TODO: Add errors for Asymmetric and non-positive definite matrices.
 /// An error returned for an invalid angular inertia in 3D.
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AngularInertia3dError {
     /// The mass is negative.
     Negative,

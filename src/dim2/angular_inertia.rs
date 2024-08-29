@@ -4,6 +4,7 @@ use crate::{Mass, RecipOrZero};
 use bevy_math::Vec2;
 
 /// An error returned for an invalid angular inertia in 2D.
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AngularInertia2dError {
     /// The mass is negative.
     Negative,

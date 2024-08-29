@@ -3,6 +3,7 @@ use std::ops::*;
 use crate::RecipOrZero;
 
 /// An error returned for an invalid mass.
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MassError {
     /// The mass is negative.
     Negative,
