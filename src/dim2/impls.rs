@@ -266,7 +266,7 @@ impl ComputeMassProperties2d for Capsule2d {
         let circle_inertia = circle.angular_inertia(Mass::ONE);
 
         // Total inertia
-        let mut capsule_inertia = rectangle_inertia * rectangle_mass + circle_inertia * circle_mass;
+        let mut capsule_inertia = rectangle_mass * rectangle_inertia + circle_mass * circle_inertia;
 
         // Compensate for the hemicircles being away from the rotation axis using the parallel axis theorem.
         capsule_inertia += AngularInertia2d::new(
@@ -354,7 +354,7 @@ fn convex_polygon_mass_properties(vertices: &[Vec2], density: f32) -> MassProper
             iter.peek().copied().copied().unwrap_or(first),
             center_of_mass,
         );
-        inertia += triangle.unit_angular_inertia() * triangle.area();
+        *inertia.value_mut() += *triangle.unit_angular_inertia() * triangle.area();
     }
 
     MassProperties2d::new(Mass::new(area * density), inertia * density, center_of_mass)
@@ -384,7 +384,7 @@ fn convex_polygon_unit_angular_inertia(vertices: &[Vec2]) -> AngularInertia2d {
             iter.peek().copied().copied().unwrap_or(first),
             center_of_mass,
         );
-        inertia += triangle.unit_angular_inertia() * triangle.area();
+        *inertia.value_mut() += triangle.unit_angular_inertia() * triangle.area();
     }
 
     inertia / area

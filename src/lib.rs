@@ -44,8 +44,10 @@ mod dim3;
 mod mass;
 mod math_ext;
 
-pub use crate::dim2::AngularInertia2d;
-pub use dim2::{ComputeMassProperties2d, MassProperties2d};
-pub use dim3::{ComputeMassProperties3d, MassProperties3d, SymmetricEigen3};
+pub use dim2::{AngularInertia2d, ComputeMassProperties2d, MassProperties2d};
+pub use dim3::{
+    AngularInertia3dError, AngularInertiaTensor, ComputeMassProperties3d, MassProperties3d,
+    SymmetricEigen3,
+};
 pub use mass::{Mass, MassError};
 pub use math_ext::{MatExt, RecipOrZero};

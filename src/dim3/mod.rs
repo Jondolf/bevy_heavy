@@ -1,7 +1,7 @@
-use bevy_math::{Isometry3d, Mat3, Quat, Vec3};
+use bevy_math::{Mat3, Quat, Vec3};
 
 mod angular_inertia;
-pub use angular_inertia::AngularInertiaTensor;
+pub use angular_inertia::{AngularInertia3dError, AngularInertiaTensor};
 
 /// [`ComputeMassProperties3d`] implementations for 3D geometric primitives.
 mod impls;
@@ -49,10 +49,8 @@ pub trait ComputeMassProperties3d {
     /// Computes the 3x3 [`AngularInertiaTensor`] corresponding to the given `mass`.
     #[inline]
     fn angular_inertia_tensor(&self, mass: impl Into<Mass>) -> AngularInertiaTensor {
-        AngularInertiaTensor::new_with_local_frame(
-            self.principal_angular_inertia(mass),
-            self.local_inertial_frame(),
-        )
+        let mass: Mass = mass.into();
+        mass.value() * self.unit_angular_inertia_tensor()
     }
 
     /// Computes the local center of mass.
@@ -154,12 +152,10 @@ impl MassProperties3d {
         )
     }
 
-    /// Returns the center of mass transformed into global space using the given [isometry].
-    ///
-    /// [isometry]: Isometry3d
+    /// Returns the center of mass transformed into global space using the given translation and rotation.
     #[inline]
-    pub fn global_center_of_mass(&self, isometry: Isometry3d) -> Vec3 {
-        isometry * self.center_of_mass
+    pub fn global_center_of_mass(&self, translation: Vec3, rotation: Quat) -> Vec3 {
+        translation + rotation * self.center_of_mass
     }
 
     /// Computes the world-space angular inertia tensor from the principal inertia.
@@ -190,22 +186,18 @@ impl MassProperties3d {
         AngularInertiaTensor::from_mat3(lhs * rhs)
     }
 
-    /// Returns the mass properties transformed by the given [isometry].
-    ///
-    /// [isometry]: Isometry3d
+    /// Returns the mass properties transformed by the given translation and rotation.
     #[inline]
-    pub fn transformed_by(mut self, isometry: Isometry3d) -> Self {
-        self.transform_by(isometry);
+    pub fn transformed_by(mut self, translation: Vec3, rotation: Quat) -> Self {
+        self.transform_by(translation, rotation);
         self
     }
 
-    /// Transforms the mass properties by the given [isometry].
-    ///
-    /// [isometry]: Isometry3d
+    /// Transforms the mass properties by the given translation and rotation.
     #[inline]
-    pub fn transform_by(&mut self, isometry: Isometry3d) {
-        self.center_of_mass = self.global_center_of_mass(isometry);
-        self.local_inertial_frame = isometry.rotation * self.local_inertial_frame;
+    pub fn transform_by(&mut self, translation: Vec3, rotation: Quat) {
+        self.center_of_mass = self.global_center_of_mass(translation, rotation);
+        self.local_inertial_frame = rotation * self.local_inertial_frame;
     }
 
     /// Sets the mass to the given `new_mass`. This also affects the angular inertia.

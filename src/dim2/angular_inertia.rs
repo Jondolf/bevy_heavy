@@ -15,7 +15,7 @@ pub enum AngularInertia2dError {
 /// The moment of inertia of a 2D object. This represents the torque needed for a desired angular acceleration.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 #[cfg_attr(feature = "bevy_reflect", derive(bevy_reflect::Reflect))]
-#[cfg_attr(feature = "bevy_reflect", reflect(Debug, Default, PartialEq))]
+#[cfg_attr(feature = "bevy_reflect", reflect(Debug, PartialEq))]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
     all(feature = "bevy_reflect", feature = "serialize"),
@@ -59,6 +59,8 @@ impl AngularInertia2d {
 
     /// Tries to create a new [`AngularInertia2d`] from the given angular inertia.
     ///
+    /// # Errors
+    ///
     /// Returns [`Err(AngularInertia2dError)`](AngularInertia2dError) if the angular inertia is negative.
     #[inline]
     pub fn try_new(angular_inertia: f32) -> Result<Self, AngularInertia2dError> {
@@ -75,6 +77,14 @@ impl AngularInertia2d {
     #[inline]
     pub fn value(self) -> f32 {
         self.0
+    }
+
+    /// Returns a mutable reference to the `f32` stored in `self`.
+    ///
+    /// Note that this allows making changes that could make the angular inertia invalid.
+    #[inline]
+    pub fn value_mut(&mut self) -> &mut f32 {
+        &mut self.0
     }
 
     /// Returns the inverse angular inertia.
@@ -131,11 +141,11 @@ impl AddAssign<AngularInertia2d> for AngularInertia2d {
 }
 
 impl Mul<f32> for AngularInertia2d {
-    type Output = Self;
+    type Output = f32;
 
     #[inline]
-    fn mul(self, rhs: f32) -> Self {
-        Self(self.0 * rhs)
+    fn mul(self, rhs: f32) -> f32 {
+        self.0 * rhs
     }
 }
 
@@ -200,5 +210,14 @@ impl DivAssign<Mass> for AngularInertia2d {
     #[inline]
     fn div_assign(&mut self, mass: Mass) {
         self.0 /= *mass;
+    }
+}
+
+impl Mul<Vec2> for AngularInertia2d {
+    type Output = Vec2;
+
+    #[inline]
+    fn mul(self, vec: Vec2) -> Vec2 {
+        self.0 * vec
     }
 }

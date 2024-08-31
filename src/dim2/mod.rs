@@ -1,4 +1,4 @@
-use bevy_math::{Isometry2d, Vec2};
+use bevy_math::{Rot2, Vec2};
 
 mod angular_inertia;
 pub use angular_inertia::AngularInertia2d;
@@ -83,33 +83,27 @@ impl MassProperties2d {
         }
     }
 
-    /// Returns the center of mass transformed into global space using the given [isometry].
-    ///
-    /// [isometry]: Isometry2d
+    /// Returns the center of mass transformed into global space using the given translation and rotation.
     #[inline]
-    pub fn global_center_of_mass(&self, isometry: Isometry2d) -> Vec2 {
-        isometry * self.center_of_mass
+    pub fn global_center_of_mass(&self, translation: Vec2, rotation: Rot2) -> Vec2 {
+        translation + rotation * self.center_of_mass
     }
 
-    /// Returns the mass properties transformed by the given [isometry].
+    /// Returns the mass properties transformed by the given translation and rotation.
     ///
     /// In 2D, this only transforms the center of mass.
-    ///
-    /// [isometry]: Isometry2d
     #[inline]
-    pub fn transformed_by(mut self, isometry: Isometry2d) -> Self {
-        self.transform_by(isometry);
+    pub fn transformed_by(mut self, translation: Vec2, rotation: Rot2) -> Self {
+        self.transform_by(translation, rotation);
         self
     }
 
-    /// Transforms the mass properties by the given [isometry].
+    /// Transforms the mass properties by the given translation and rotation.
     ///
     /// In 2D, this only transforms the center of mass.
-    ///
-    /// [isometry]: Isometry2d
     #[inline]
-    pub fn transform_by(&mut self, isometry: Isometry2d) {
-        self.center_of_mass = self.global_center_of_mass(isometry);
+    pub fn transform_by(&mut self, translation: Vec2, rotation: Rot2) {
+        self.center_of_mass = self.global_center_of_mass(translation, rotation);
     }
 
     /// Returns the mass propeorties with the inverse of mass and angular inertia.

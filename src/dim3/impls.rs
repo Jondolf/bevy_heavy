@@ -17,7 +17,12 @@ impl ComputeMassProperties3d for Sphere {
 
     #[inline]
     fn unit_principal_angular_inertia(&self) -> Vec3 {
-        Vec3::splat(self.radius.powi(2) / 2.0 / 5.0)
+        Vec3::splat(0.4 * self.radius.powi(2))
+    }
+
+    #[inline]
+    fn unit_angular_inertia_tensor(&self) -> AngularInertiaTensor {
+        AngularInertiaTensor::new(self.unit_principal_angular_inertia())
     }
 
     #[inline]
@@ -41,6 +46,11 @@ impl ComputeMassProperties3d for Cuboid {
     }
 
     #[inline]
+    fn unit_angular_inertia_tensor(&self) -> AngularInertiaTensor {
+        AngularInertiaTensor::new(self.unit_principal_angular_inertia())
+    }
+
+    #[inline]
     fn center_of_mass(&self) -> Vec3 {
         Vec3::ZERO
     }
@@ -59,6 +69,11 @@ impl ComputeMassProperties3d for Cylinder {
         let principal = radius_squared / 2.0;
         let off_principal = (radius_squared * 3.0 + height_squared) / 12.0;
         Vec3::new(off_principal, principal, off_principal)
+    }
+
+    #[inline]
+    fn unit_angular_inertia_tensor(&self) -> AngularInertiaTensor {
+        AngularInertiaTensor::new(self.unit_principal_angular_inertia())
     }
 
     #[inline]
@@ -107,6 +122,11 @@ impl ComputeMassProperties3d for Capsule3d {
         capsule_inertia.z += extra;
 
         capsule_inertia
+    }
+
+    #[inline]
+    fn unit_angular_inertia_tensor(&self) -> AngularInertiaTensor {
+        AngularInertiaTensor::new(self.unit_principal_angular_inertia())
     }
 
     #[inline]
@@ -165,6 +185,11 @@ impl ComputeMassProperties3d for Cone {
     }
 
     #[inline]
+    fn unit_angular_inertia_tensor(&self) -> AngularInertiaTensor {
+        AngularInertiaTensor::new(self.unit_principal_angular_inertia())
+    }
+
+    #[inline]
     fn center_of_mass(&self) -> Vec3 {
         Vec3::new(0.0, -self.height * 0.25, 0.0)
     }
@@ -218,6 +243,11 @@ impl ComputeMassProperties3d for ConicalFrustum {
 
             Vec3::new(off_principal, principal, off_principal)
         }
+    }
+
+    #[inline]
+    fn unit_angular_inertia_tensor(&self) -> AngularInertiaTensor {
+        AngularInertiaTensor::new(self.unit_principal_angular_inertia())
     }
 
     #[inline]
@@ -332,6 +362,11 @@ impl ComputeMassProperties3d for Torus {
         let principal = 0.25 * (4.0 * major_radius_squared + 3.0 * minor_radius_squared);
         let off_principal = 1.0 / 8.0 * (4.0 * major_radius_squared + 5.0 * minor_radius_squared);
         Vec3::new(off_principal, principal, off_principal)
+    }
+
+    #[inline]
+    fn unit_angular_inertia_tensor(&self) -> AngularInertiaTensor {
+        AngularInertiaTensor::new(self.unit_principal_angular_inertia())
     }
 
     #[inline]

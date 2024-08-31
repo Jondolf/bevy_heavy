@@ -29,7 +29,7 @@ pub enum AngularInertia3dError {
 /// - [`local_frame`](AngularInertiaTensor::local_frame)
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 #[cfg_attr(feature = "bevy_reflect", derive(bevy_reflect::Reflect))]
-#[cfg_attr(feature = "bevy_reflect", reflect(Debug, Default, PartialEq))]
+#[cfg_attr(feature = "bevy_reflect", reflect(Debug, PartialEq))]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
     all(feature = "bevy_reflect", feature = "serialize"),
@@ -62,9 +62,8 @@ impl AngularInertiaTensor {
     /// Creates a new [`AngularInertiaTensor`] from the given principal angular inertia.
     ///
     /// The principal angular inertia represents the torque needed for a desired angular acceleration
-    /// about the local coordinate axes.
-    ///
-    /// To specify the orientation of the local inertial frame, consider using [`AngularInertiaTensor::new_with_local_frame`].
+    /// about the local coordinate axes. To specify the orientation of the local inertial frame,
+    /// consider using [`AngularInertiaTensor::new_with_local_frame`].
     ///
     /// # Panics
     ///
@@ -85,6 +84,8 @@ impl AngularInertiaTensor {
     /// The principal angular inertia represents the torque needed for a desired angular acceleration
     /// about the local coordinate axes. To specify the orientation of the local inertial frame,
     /// consider using [`AngularInertiaTensor::try_new_with_local_frame`].
+    ///
+    /// # Errors
     ///
     /// Returns [`Err(AngularInertia3dError)`](AngularInertia3dError) if any component of the principal angular inertia is negative.
     #[inline]
@@ -128,7 +129,10 @@ impl AngularInertiaTensor {
     /// The principal angular inertia represents the torque needed for a desired angular acceleration
     /// about the local coordinate axes defined by the given `orientation`.
     ///
-    /// Returns [`Err(AngularInertia3dError)`](AngularInertia3dError) if any component of the principal angular inertia is negative.
+    /// # Errors
+    ///
+    /// Returns [`Err(AngularInertia3dError)`](AngularInertia3dError) if any component
+    /// of the principal angular inertia is negative.
     #[inline]
     pub fn try_new_with_local_frame(
         principal_angular_inertia: Vec3,
@@ -151,6 +155,7 @@ impl AngularInertiaTensor {
     ///
     /// The tensor should be symmetric and positive definite.
     #[inline]
+    #[doc(alias = "from_tensor")]
     pub fn from_mat3(mat: Mat3) -> Self {
         Self(mat)
     }
@@ -158,15 +163,20 @@ impl AngularInertiaTensor {
     /// Returns the angular inertia tensor as a [`Mat3`].
     ///
     /// Equivalent to [`AngularInertiaTensor::value`].
+    #[doc(alias = "as_tensor")]
+    #[inline]
     pub fn as_mat3(&self) -> Mat3 {
         self.0
     }
 
     /// Returns a mutable reference to the [`Mat3`] stored in `self`.
     ///
-    /// Note that this allows making changes that could make the angular inertia tensor invalid (non-symmetric or non-positive definite).
+    /// Note that this allows making changes that could make the angular inertia tensor invalid
+    /// (non-symmetric or non-positive definite).
     ///
     /// Equivalent to [`AngularInertiaTensor::value_mut`].
+    #[doc(alias = "as_tensor_mut")]
+    #[inline]
     pub fn as_mat3_mut(&mut self) -> &mut Mat3 {
         &mut self.0
     }
@@ -181,9 +191,11 @@ impl AngularInertiaTensor {
 
     /// Returns a mutable reference to the [`Mat3`] stored in `self`.
     ///
-    /// Note that this allows making changes that could make the angular inertia tensor invalid (non-symmetric or non-positive definite).
+    /// Note that this allows making changes that could make the angular inertia tensor invalid
+    /// (non-symmetric or non-positive definite).
     ///
     /// Equivalent to [`AngularInertiaTensor::as_mat3_mut`].
+    #[inline]
     pub fn value_mut(&mut self) -> &mut Mat3 {
         &mut self.0
     }
@@ -200,7 +212,8 @@ impl AngularInertiaTensor {
         *self = angular_inertia.into();
     }
 
-    /// Computes the principal angular inertia and local inertial frame.
+    /// Computes the principal angular inertia and local inertial frame
+    /// by diagonalizing the 3x3 tensor matrix.
     ///
     /// The principal angular inertia represents the torque needed for a desired angular acceleration
     /// about the local coordinate axes defined by the local inertial frame.
@@ -236,6 +249,7 @@ impl AngularInertiaTensor {
     /// To compute the local inertial frame, use [`AngularInertiaTensor::local_frame`].
     /// Note that if both the principal angular inertia and the local inertial frame are needed,
     /// it is more efficient to use [`AngularInertiaTensor::principal_angular_inertia_with_local_frame`].
+    #[inline]
     pub fn principal_angular_inertia(&self) -> Vec3 {
         let mut eigen = SymmetricEigen3::new(self.0).reverse();
 
@@ -255,6 +269,7 @@ impl AngularInertiaTensor {
     /// To compute the principal angular inertia, use [`AngularInertiaTensor::principal_angular_inertia`].
     /// Note that if both the principal angular inertia and the local inertial frame are needed,
     /// it is more efficient to use [`AngularInertiaTensor::principal_angular_inertia_with_local_frame`].
+    #[inline]
     pub fn local_frame(&self) -> Quat {
         let mut eigenvectors = SymmetricEigen3::new(self.0).reverse().eigenvectors;
 
@@ -282,7 +297,7 @@ impl AngularInertiaTensor {
 
     /// Computes the angular inertia tensor shifted by the given offset, taking into account the given mass.
     #[inline]
-    pub fn shifted(self, mass: impl Into<Mass>, offset: Vec3) -> AngularInertiaTensor {
+    pub fn shifted(self, mass: impl Into<Mass>, offset: Vec3) -> Self {
         if offset != Vec3::ZERO {
             let diagonal_element = offset.length_squared();
             let diagonal_mat = Mat3::from_diagonal(Vec3::splat(diagonal_element));
@@ -331,15 +346,6 @@ impl AddAssign<AngularInertiaTensor> for AngularInertiaTensor {
     #[inline]
     fn add_assign(&mut self, rhs: AngularInertiaTensor) {
         self.0 += rhs.0;
-    }
-}
-
-impl Mul<f32> for AngularInertiaTensor {
-    type Output = Self;
-
-    #[inline]
-    fn mul(self, rhs: f32) -> Self {
-        Self(self.0 * rhs)
     }
 }
 
@@ -413,5 +419,14 @@ impl Mul<AngularInertiaTensor> for Quat {
     #[inline]
     fn mul(self, angular_inertia: AngularInertiaTensor) -> AngularInertiaTensor {
         angular_inertia.rotated(self)
+    }
+}
+
+impl Mul<Vec3> for AngularInertiaTensor {
+    type Output = Vec3;
+
+    #[inline]
+    fn mul(self, rhs: Vec3) -> Vec3 {
+        self.0 * rhs
     }
 }

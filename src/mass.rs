@@ -14,7 +14,7 @@ pub enum MassError {
 /// The mass of an object. Must be positive or zero.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 #[cfg_attr(feature = "bevy_reflect", derive(bevy_reflect::Reflect))]
-#[cfg_attr(feature = "bevy_reflect", reflect(Debug, Default, PartialEq))]
+#[cfg_attr(feature = "bevy_reflect", reflect(Debug, PartialEq))]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
     all(feature = "bevy_reflect", feature = "serialize"),
@@ -57,6 +57,8 @@ impl Mass {
     }
 
     /// Tries to create a new [`Mass`] from the given mass.
+    ///
+    /// # Errors
     ///
     /// Returns [`Err(MassError)`](MassError) if the mass is negative or NaN.
     #[inline]
