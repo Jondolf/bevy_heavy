@@ -10,15 +10,44 @@ use bevy_math::{Mat3, Vec3, Vec3Swizzles};
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct SymmetricEigen3 {
     /// The eigenvalues of the symmetric 3x3 matrix.
+    ///
+    /// These should be in ascending order `eigen1 <= eigen2 <= eigen3`.
     pub eigenvalues: Vec3,
     /// The three eigenvectors of the symmetric 3x3 matrix.
+    /// Each eigenvector should be unit length and orthogonal to the other eigenvectors.
+    ///
+    /// The eigenvectors are ordered to correspond to the eigenvalues. For example,
+    /// `eigenvectors.x_axis` corresponds to `eigenvalues.x`.
     pub eigenvectors: Mat3,
 }
 
 impl SymmetricEigen3 {
     /// Computes the eigen decomposition of the given symmetric 3x3 matrix.
+    ///
+    /// The eigenvalues are returned in ascending order `eigen1 <= eigen2 <= eigen3`.
+    /// This can be reversed with the [`reverse`](Self::reverse) method.
     pub fn new(mat: Mat3) -> Self {
-        let eigenvalues = Self::eigenvalues(mat);
+        let (mut eigenvalues, is_diagonal) = Self::eigenvalues(mat);
+
+        if is_diagonal {
+            // The matrix is already diagonal. Sort the eigenvalues in ascending order,
+            // ordering the eigenvectors accordingly, and return early.
+            let mut eigenvectors = Mat3::IDENTITY;
+            if eigenvalues[0] > eigenvalues[1] {
+                std::mem::swap(&mut eigenvalues.x, &mut eigenvalues.y);
+                std::mem::swap(&mut eigenvectors.x_axis, &mut eigenvectors.y_axis);
+            }
+            if eigenvalues[1] > eigenvalues[2] {
+                std::mem::swap(&mut eigenvalues.y, &mut eigenvalues.z);
+                std::mem::swap(&mut eigenvectors.y_axis, &mut eigenvectors.z_axis);
+            }
+            return Self {
+                eigenvalues,
+                eigenvectors,
+            };
+        }
+
+        // Compute the eigenvectors corresponding to the eigenvalues.
         let eigenvector1 = Self::eigenvector1(mat, eigenvalues.x);
         let eigenvector2 = Self::eigenvector2(mat, eigenvector1, eigenvalues.y);
         let eigenvector3 = Self::eigenvector3(eigenvector1, eigenvector2);
@@ -41,15 +70,18 @@ impl SymmetricEigen3 {
         }
     }
 
-    /// Computes the eigenvalues of a symmetric 3x3 matrix.
+    /// Computes the eigenvalues of a symmetric 3x3 matrix, also returning whether the input matrix is diagonal.
+    ///
+    /// If the matrix is already diagonal, the eigenvalues are returned as is without reordering.
+    /// Otherwise, the eigenvalues are computed and returned in ascending order
+    /// such that `eigen1 <= eigen2 <= eigen3`.
     ///
     /// Reference: <https://en.wikipedia.org/wiki/Eigenvalue_algorithm#3%C3%973_matrices>
-    pub fn eigenvalues(mat: Mat3) -> Vec3 {
+    pub fn eigenvalues(mat: Mat3) -> (Vec3, bool) {
         let p1 = mat.y_axis.x.powi(2) + mat.z_axis.x.powi(2) + mat.z_axis.y.powi(2);
         if p1 == 0.0 {
             // The matrix is diagonal.
-            // TODO: Should we sort in ascending order here?
-            Vec3::new(mat.x_axis.x, mat.y_axis.y, mat.z_axis.z)
+            (Vec3::new(mat.x_axis.x, mat.y_axis.y, mat.z_axis.z), true)
         } else {
             let q = (mat.x_axis.x + mat.y_axis.y + mat.z_axis.z) / 3.0;
             let p2 = (mat.x_axis.x - q).powi(2)
@@ -74,7 +106,7 @@ impl SymmetricEigen3 {
             let eigen1 = q + 2.0 * p * phi.cos();
             let eigen3 = q + 2.0 * p * (phi + 2.0 * std::f32::consts::FRAC_PI_3).cos();
             let eigen2 = 3.0 * q - eigen1 - eigen3; // trace(mat) = eigen1 + eigen2 + eigen3
-            Vec3::new(eigen3, eigen2, eigen1)
+            (Vec3::new(eigen3, eigen2, eigen1), false)
         }
     }
 
@@ -226,14 +258,14 @@ mod test {
         let mat = Mat3::from_cols_array_2d(&[[2.0, 0.0, 0.0], [0.0, 5.0, 0.0], [0.0, 0.0, 3.0]]);
         let eigen = SymmetricEigen3::new(mat);
 
-        assert_eq!(eigen.eigenvalues, Vec3::new(2.0, 5.0, 3.0));
+        assert_eq!(eigen.eigenvalues, Vec3::new(2.0, 3.0, 5.0));
         assert_eq!(
             Mat3::from_cols(
                 eigen.eigenvectors.x_axis.normalize().abs(),
                 eigen.eigenvectors.y_axis.normalize().abs(),
                 eigen.eigenvectors.z_axis.normalize().abs()
             ),
-            Mat3::from_cols_array_2d(&[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+            Mat3::from_cols_array_2d(&[[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]])
         );
     }
 }
