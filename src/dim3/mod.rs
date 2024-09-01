@@ -150,24 +150,18 @@ impl MassProperties3d {
         tensor: impl Into<AngularInertiaTensor>,
         center_of_mass: Vec3,
     ) -> Self {
-        let (principal_inertia, principal_inertia_local_frame) =
-            tensor.into().principal_angular_inertia_with_local_frame();
-
-        Self::new_with_local_frame(
-            mass,
-            principal_inertia,
-            principal_inertia_local_frame,
-            center_of_mass,
-        )
+        let (principal, local_frame) = tensor.into().principal_angular_inertia_with_local_frame();
+        Self::new_with_local_frame(mass, principal, local_frame, center_of_mass)
     }
 
-    /// Computes approximate mass properties from the given set of points.
+    /// Computes approximate mass properties from the given set of points representing a shape.
     ///
     /// This can be used to estimate mass properties for arbitrary shapes
     /// by providing a set of sample points from inside the shape.
     ///
     /// The more points there are, and the more uniformly distributed they are,
     /// the more accurate the estimation will be.
+    #[inline]
     pub fn from_point_cloud(
         points: &[Vec3],
         mass: impl Into<Mass>,
@@ -181,7 +175,7 @@ impl MassProperties3d {
         let unit_angular_inertia = points
             .iter()
             .fold(DVec3::ZERO, |acc, p| {
-                let p = p.as_dvec3();
+                let p = p.as_dvec3() - center_of_mass.as_dvec3();
                 let r_x = p.reject_from_normalized(DVec3::X).length_squared();
                 let r_y = p.reject_from_normalized(DVec3::Y).length_squared();
                 let r_z = p.reject_from_normalized(DVec3::Z).length_squared();

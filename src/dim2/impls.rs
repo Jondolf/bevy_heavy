@@ -115,13 +115,14 @@ impl ComputeMassProperties2d for Triangle2d {
     fn unit_angular_inertia(&self) -> AngularInertia2d {
         // Adapted from Box2D: https://github.com/erincatto/box2d/blob/411acc32eb6d4f2e96fc70ddbdf01fe5f9b16230/src/collision/b2_polygon_shape.cpp#L274
 
-        let e1 = self.vertices[1] - self.vertices[0];
-        let e2 = self.vertices[2] - self.vertices[0];
+        // Note: The center of mass is used here, unlike in Box2D's or Parry's version.
+        let center_of_mass = self.center_of_mass();
+        let com_a = self.vertices[1] - center_of_mass;
+        let com_c = self.vertices[2] - center_of_mass;
+        let angular_inertia =
+            (com_a.length_squared() + com_a.dot(com_c) + com_c.length_squared()) / 6.0;
 
-        let int_x2 = e1.x * e1.x + e2.x * e1.x + e2.x * e2.x;
-        let int_y2 = e1.y * e1.y + e2.y * e1.y + e2.y * e2.y;
-
-        AngularInertia2d::new((int_x2 + int_y2) / 6.0)
+        AngularInertia2d::new(angular_inertia)
     }
 
     #[inline]
@@ -576,9 +577,9 @@ mod tests {
     test_shape!(
         triangle,
         Triangle2d::new(
-            Vec2::new(0.0, 0.0),
+            Vec2::new(8.0, 6.0),
             Vec2::new(2.0, 0.0),
-            Vec2::new(1.0, 1.0)
+            Vec2::new(6.0, 2.0)
         )
     );
     test_shape!(rectangle, Rectangle::new(2.0, 1.0));

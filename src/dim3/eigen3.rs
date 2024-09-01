@@ -227,6 +227,7 @@ mod test {
     use super::SymmetricEigen3;
     use approx::assert_relative_eq;
     use bevy_math::{Mat3, Vec3};
+    use rand::{Rng, SeedableRng};
 
     #[test]
     fn eigen_3x3() {
@@ -267,5 +268,55 @@ mod test {
             ),
             Mat3::from_cols_array_2d(&[[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]])
         );
+    }
+
+    #[test]
+    fn eigen_3x3_reconstruction() {
+        let mut rng = rand_chacha::ChaCha8Rng::from_seed(Default::default());
+
+        // Generate random symmetric matrices and verify that the eigen decomposition is correct.
+        for _ in 0..10_000 {
+            let eigenvalues = Vec3::new(
+                rng.gen_range(0.1..100.0),
+                rng.gen_range(0.1..100.0),
+                rng.gen_range(0.1..100.0),
+            );
+            let eigenvectors = Mat3::from_cols(
+                Vec3::new(
+                    rng.gen_range(-1.0..1.0),
+                    rng.gen_range(-1.0..1.0),
+                    rng.gen_range(-1.0..1.0),
+                )
+                .normalize(),
+                Vec3::new(
+                    rng.gen_range(-1.0..1.0),
+                    rng.gen_range(-1.0..1.0),
+                    rng.gen_range(-1.0..1.0),
+                )
+                .normalize(),
+                Vec3::new(
+                    rng.gen_range(-1.0..1.0),
+                    rng.gen_range(-1.0..1.0),
+                    rng.gen_range(-1.0..1.0),
+                )
+                .normalize(),
+            );
+
+            // Construct the symmetric matrix from the eigenvalues and eigenvectors.
+            let mat1 = eigenvectors * Mat3::from_diagonal(eigenvalues) * eigenvectors.transpose();
+
+            // Compute the eigen decomposition of the constructed matrix.
+            let eigen = SymmetricEigen3::new(mat1);
+
+            // Reconstruct the matrix from the computed eigenvalues and eigenvectors.
+            let mat2 = eigen.eigenvectors
+                * Mat3::from_diagonal(eigen.eigenvalues)
+                * eigen.eigenvectors.transpose();
+
+            // The reconstructed matrix should be close to the original matrix.
+            // Note: The precision depends on how large the eigenvalues are.
+            //       Larger eigenvalues can lead to larger absolute error.
+            assert_relative_eq!(mat1, mat2, epsilon = 1e-2);
+        }
     }
 }

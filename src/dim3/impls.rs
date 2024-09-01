@@ -179,8 +179,13 @@ impl ComputeMassProperties3d for Cone {
     fn unit_principal_angular_inertia(&self) -> Vec3 {
         let radius_squared = self.radius.powi(2);
         let height_squared = self.height.powi(2);
-        let principal = radius_squared * 3.0 / 10.0;
-        let off_principal = radius_squared * 3.0 / 20.0 + height_squared * 3.0 / 80.0;
+
+        // About the Y axis
+        let principal = 3.0 / 10.0 * radius_squared;
+
+        // About the X or Z axis passing through the center of mass
+        let off_principal = principal * 0.5 + 3.0 / 80.0 * height_squared;
+
         Vec3::new(off_principal, principal, off_principal)
     }
 
@@ -201,26 +206,12 @@ impl ComputeMassProperties3d for ConicalFrustum {
         if self.radius_top == self.radius_bottom {
             Cylinder::new(self.radius_top, self.height).mass(density)
         } else {
-            let (min_radius, max_radius) = if self.radius_top < self.radius_bottom {
-                (self.radius_top, self.radius_bottom)
-            } else {
-                (self.radius_bottom, self.radius_top)
-            };
-
-            // To compute the mass of the conical frustum, we will subtract the volume
-            // of the smaller cone (2) from the mass properties of the larger cone (1).
-
-            // The height of the cone formed by tapering the conical frustum to a tip.
-            let cone_height =
-                max_radius * (self.height / (self.radius_top - self.radius_bottom).abs());
-
-            // Compute the frustum volume as the difference of the volumes of the larger and smaller cone.
-            let volume1 = std::f32::consts::PI / 3.0 * max_radius.powi(2) * cone_height;
-            let volume2 =
-                std::f32::consts::PI / 3.0 * min_radius.powi(2) * (cone_height - self.height);
-            let frustum_volume = volume1 - volume2;
-
-            Mass::new(frustum_volume * density)
+            // https://mathworld.wolfram.com/ConicalFrustum.html
+            let radii_squared = self.radius_top.powi(2) + self.radius_bottom.powi(2);
+            let volume = std::f32::consts::FRAC_PI_3
+                * self.height
+                * (radii_squared + self.radius_top * self.radius_bottom);
+            Mass::new(volume * density)
         }
     }
 
@@ -229,19 +220,65 @@ impl ComputeMassProperties3d for ConicalFrustum {
         if self.radius_top == self.radius_bottom {
             Cylinder::new(self.radius_top, self.height).unit_principal_angular_inertia()
         } else {
-            let max_radius = self.radius_top.max(self.radius_bottom);
-            let radii_squared = self.radius_top.powi(2) + self.radius_bottom.powi(2);
+            let (min_radius, max_radius) = if self.radius_top < self.radius_bottom {
+                (self.radius_top, self.radius_bottom)
+            } else {
+                (self.radius_bottom, self.radius_top)
+            };
 
-            // The height of the cone formed by tapering the conical frustum to a tip.
+            // TODO: The principal angular inertia along the symmetry axis Y is straightforward to compute directly.
+            //       However, I have not found a correct formula for the principal angular inertia along the other axes.
+            //       It would be much more efficient to compute directly instead of subtracting cones like what we're doing here though.
+            // let principal_y = 3.0 * (max_radius.powi(5) - min_radius.powi(5))
+            //     / (10.0 * (max_radius.powi(3) - min_radius.powi(3)));
+
+            // The conical frustum can be thought of as a cone with a smaller cone subtracted from it.
+            // To get its angular inertia, we can subtract the angular inertia of the small cone
+            // from the angular inertia of the small cone.
+
+            // Create the large and small cone.
             let cone_height =
                 max_radius * (self.height / (self.radius_top - self.radius_bottom).abs());
+            let large_cone = Cone {
+                radius: max_radius,
+                height: cone_height,
+            };
+            let small_cone = Cone {
+                radius: min_radius,
+                height: cone_height - self.height,
+            };
 
-            // Compute the angular inertia.
-            // FIXME: `off_principal` is the same as it is for the cone. Is this correct?
-            let principal = 1.0 / 12.0 * (self.height.powi(2) + 3.0 * radii_squared);
-            let off_principal = max_radius.powi(2) * 3.0 / 20.0 + cone_height.powi(2) * 3.0 / 80.0;
+            // Compute the volumes of the large and small cone and the frustum.
+            // These are equivalent to the masses when using a uniform density of `1.0`.
+            let large_cone_volume = large_cone.volume();
+            let small_cone_volume = small_cone.volume();
+            let volume = large_cone_volume - small_cone_volume;
 
-            Vec3::new(off_principal, principal, off_principal)
+            // The total mass of the frustum is `1.0` in this case, so we just want the fractional volumes
+            // for determining how much each cone contributes to the angular inertia.
+            let large_cone_volume_fraction = large_cone_volume / volume;
+            let small_cone_volume_fraction = small_cone_volume / volume;
+
+            let large_cone_angular_inertia =
+                large_cone.principal_angular_inertia(large_cone_volume_fraction);
+            let mut small_cone_angular_inertia =
+                small_cone.principal_angular_inertia(small_cone_volume_fraction);
+
+            // The small cone's center of mass is offset from the frustum's center of mass,
+            // so we need to take the parallel axis theorem (also known as Steiner's theorem) into account.
+            //
+            // I = I_cm + m * d^2
+            //
+            // - `I_cm` is the angular inertia about the center of mass
+            // - `m` is the mass, `small_cone_fraction` in this case
+            // - `d` is the distance between the parallel axes
+            let d = 0.5 * (self.height + small_cone.height) + small_cone.center_of_mass().y;
+            let extra_angular_inertia = small_cone_volume_fraction * d * d;
+            small_cone_angular_inertia.x += extra_angular_inertia;
+            small_cone_angular_inertia.z += extra_angular_inertia;
+
+            // Return the total principal angular inertia.
+            large_cone_angular_inertia.x - small_cone_angular_inertia
         }
     }
 
@@ -255,40 +292,24 @@ impl ComputeMassProperties3d for ConicalFrustum {
         if self.radius_top == self.radius_bottom {
             Vec3::ZERO
         } else {
+            // Adapted from: https://mathworld.wolfram.com/ConicalFrustum.html
+
             let (min_radius, max_radius) = if self.radius_top < self.radius_bottom {
                 (self.radius_top, self.radius_bottom)
             } else {
                 (self.radius_bottom, self.radius_top)
             };
 
-            // To compute the center of mass of the conical frustum, we will subtract the mass properties
-            // of the smaller cone (2) from the mass properties of the larger cone (1).
+            let min_radius_squared = min_radius.powi(2);
+            let max_radius_squared = max_radius.powi(2);
+            let radii_product = self.radius_top * self.radius_bottom;
 
-            let cone1_height =
-                max_radius * (self.height / (self.radius_top - self.radius_bottom).abs());
-            let cone2_height = cone1_height - self.height;
+            let y = self.height
+                * ((max_radius_squared + 2.0 * radii_product + 3.0 * min_radius_squared)
+                    / (4.0 * (max_radius_squared + radii_product + min_radius_squared))
+                    - 0.5);
 
-            // Compute the frustum volume as the difference of the volumes of the cones.
-            let volume1 = std::f32::consts::PI / 3.0 * max_radius.powi(2) * cone1_height;
-            let volume2 =
-                std::f32::consts::PI / 3.0 * min_radius.powi(2) * (cone1_height - self.height);
-
-            // The Y coordinates of the centers of masses
-            let (com1, com2) = if self.radius_top < self.radius_bottom {
-                (-cone1_height / 4.0, self.height / 2.0 + cone2_height / 4.0)
-            } else {
-                (
-                    cone1_height / 4.0,
-                    (cone1_height - self.height) / 4.0 - self.height / 2.0,
-                )
-            };
-
-            // We can use volume instead of mass for the weighted average because the density is constant.
-            Vec3::new(
-                0.0,
-                (com1 * volume1 - com2 * volume2) / (volume1 - volume2),
-                0.0,
-            )
+            Vec3::new(0.0, y, 0.0)
         }
     }
 
@@ -297,51 +318,77 @@ impl ComputeMassProperties3d for ConicalFrustum {
         if self.radius_top == self.radius_bottom {
             Cylinder::new(self.radius_top, self.height).mass_properties(density)
         } else {
+            // This is a combination of all the methods above, sharing variables where possible.
+
             let (min_radius, max_radius) = if self.radius_top < self.radius_bottom {
                 (self.radius_top, self.radius_bottom)
             } else {
                 (self.radius_bottom, self.radius_top)
             };
-            let radii_squared = self.radius_top.powi(2) + self.radius_bottom.powi(2);
 
-            // To compute the mass properties of the conical frustum, we will subtract the mass properties
-            // of the smaller cone (2) from the mass properties of the larger cone (1).
+            // The conical frustum can be thought of as a cone with a smaller cone subtracted from it.
+            // To get its angular inertia, we can subtract the angular inertia of the small cone
+            // from the angular inertia of the small cone.
 
-            let cone1_height =
+            // Create the large and small cone.
+            let cone_height =
                 max_radius * (self.height / (self.radius_top - self.radius_bottom).abs());
-            let cone2_height = cone1_height - self.height;
-
-            // Compute the frustum volume as the difference of the volumes of the cones.
-            let volume1 = std::f32::consts::PI / 3.0 * max_radius.powi(2) * cone1_height;
-            let volume2 =
-                std::f32::consts::PI / 3.0 * min_radius.powi(2) * (cone1_height - self.height);
-            let frustum_volume = volume1 - volume2;
-            let frustum_mass = frustum_volume * density;
-
-            // The Y coordinates of the centers of masses
-            let (com1, com2) = if self.radius_top < self.radius_bottom {
-                (-cone1_height / 4.0, self.height / 2.0 + cone2_height / 4.0)
-            } else {
-                (
-                    cone1_height / 4.0,
-                    (cone1_height - self.height) / 4.0 - self.height / 2.0,
-                )
+            let large_cone = Cone {
+                radius: max_radius,
+                height: cone_height,
+            };
+            let small_cone = Cone {
+                radius: min_radius,
+                height: cone_height - self.height,
             };
 
-            // We can use volume instead of mass for the weighted average because the density is constant.
-            let center_of_mass = Vec3::new(
-                0.0,
-                (com1 * volume1 - com2 * volume2) / (volume1 - volume2),
-                0.0,
-            );
+            // Compute the volumes of the large and small cone and the frustum.
+            // These are equivalent to the masses when using a uniform density of `1.0`.
+            let large_cone_volume = large_cone.volume();
+            let small_cone_volume = small_cone.volume();
+            let volume = large_cone_volume - small_cone_volume;
 
-            // Compute the angular inertia.
-            // FIXME: `off_principal` is the same as it is for the cone. Is this correct?
-            let principal = 1.0 / 12.0 * (self.height.powi(2) + 3.0 * radii_squared);
-            let off_principal = max_radius.powi(2) * 3.0 / 20.0 + cone1_height.powi(2) * 3.0 / 80.0;
-            let inertia = Vec3::new(off_principal, principal, off_principal) * frustum_mass;
+            // Compute the mass.
+            let mass = volume * density;
 
-            MassProperties3d::new(frustum_mass, inertia, center_of_mass)
+            // Compute how much each cone contributes to the angular inertia.
+            let large_cone_volume_fraction = large_cone_volume / volume;
+            let small_cone_volume_fraction = small_cone_volume / volume;
+
+            let large_cone_angular_inertia =
+                large_cone.principal_angular_inertia(large_cone_volume_fraction);
+            let mut small_cone_angular_inertia =
+                small_cone.principal_angular_inertia(small_cone_volume_fraction);
+
+            // The small cone's center of mass is offset from the frustum's center of mass,
+            // so we need to take the parallel axis theorem (also known as Steiner's theorem) into account.
+            //
+            // I = I_cm + m * d^2
+            //
+            // - `I_cm` is the angular inertia about the center of mass
+            // - `m` is the mass, `small_cone_fraction` in this case
+            // - `d` is the distance between the parallel axes
+            let d = 0.5 * (self.height + small_cone.height) + small_cone.center_of_mass().y;
+            let extra_angular_inertia = small_cone_volume_fraction * d * d;
+            small_cone_angular_inertia.x += extra_angular_inertia;
+            small_cone_angular_inertia.z += extra_angular_inertia;
+
+            // Return the total principal angular inertia.
+            let principal_angular_inertia =
+                mass * (large_cone_angular_inertia.x - small_cone_angular_inertia);
+
+            let min_radius_squared = min_radius.powi(2);
+            let max_radius_squared = max_radius.powi(2);
+            let radii_product = self.radius_top * self.radius_bottom;
+
+            // Compute the center of mass.
+            let y = self.height
+                * ((max_radius_squared + 2.0 * radii_product + 3.0 * min_radius_squared)
+                    / (4.0 * (max_radius_squared + radii_product + min_radius_squared))
+                    - 0.5);
+            let center_of_mass = Vec3::new(0.0, y, 0.0);
+
+            MassProperties3d::new(mass, principal_angular_inertia, center_of_mass)
         }
     }
 }
@@ -389,7 +436,7 @@ impl ComputeMassProperties3d for Tetrahedron {
 
     #[inline]
     fn local_inertial_frame(&self) -> Quat {
-        let tensor = self.angular_inertia_tensor(Mass::ONE);
+        let tensor = self.unit_angular_inertia_tensor();
         tensor.local_frame()
     }
 
@@ -627,21 +674,20 @@ impl<const N: usize> ComputeMassProperties3d for Polyline3d<N> {
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
+    use bevy_math::{
+        bounding::{Bounded3d, BoundingVolume},
+        ShapeSample, Vec3Swizzles,
+    };
+    use rand::SeedableRng;
 
     macro_rules! test_shape {
-        ($test_name:tt, $shape:expr) => {
+        ($test_name:tt, $shape:expr, $point_generator:expr) => {
             #[test]
             fn $test_name() {
                 let shape = $shape;
 
-                /*
-                // TODO: Add this back when uniform sampling is implemented for all the shapes.
                 // Sample enough points to have a close enough point cloud representation of the shape.
-                let mut rng = rand_chacha::ChaCha8Rng::from_seed(Default::default());
-                let points = (0..2_000_000)
-                    .map(|_| shape.sample_interior(&mut rng))
-                    .collect::<Vec<_>>();
-                */
+                let points: Vec<Vec3> = $point_generator(&shape);
 
                 // Compute the mass properties to test.
                 let density = 2.0;
@@ -658,15 +704,13 @@ mod tests {
                     principal_angular_inertia,
                     mass_props.principal_angular_inertia
                 );
-                assert_relative_eq!(local_inertial_frame, mass_props.local_inertial_frame);
                 assert_relative_eq!(center_of_mass, mass_props.center_of_mass);
 
-                /*
                 // Estimate the expected mass properties using the point cloud.
                 // Note: We could also approximate the mass using Monte Carlo integration.
                 //       This would require point containment checks.
                 let expected =
-                MassProperties3d::from_point_cloud(&points, mass, local_inertial_frame);
+                    MassProperties3d::from_point_cloud(&points, mass, local_inertial_frame);
 
                 assert_relative_eq!(mass.value(), expected.mass.value());
                 assert_relative_eq!(
@@ -675,7 +719,6 @@ mod tests {
                     epsilon = 0.1
                 );
                 assert_relative_eq!(center_of_mass, expected.center_of_mass, epsilon = 0.01);
-                */
 
                 // Check that the computed tensor matches the tensor computed from
                 // the principal moments of inertia and the local inertial frame.
@@ -697,11 +740,6 @@ mod tests {
                 let (principal, frame) =
                     angular_inertia_tensor.principal_angular_inertia_with_local_frame();
                 assert_relative_eq!(
-                    (frame * principal).abs(),
-                    principal_angular_inertia,
-                    epsilon = 1e-5
-                );
-                assert_relative_eq!(
                     AngularInertiaTensor::new_with_local_frame(principal, frame),
                     angular_inertia_tensor,
                     epsilon = 1e-5
@@ -710,25 +748,141 @@ mod tests {
         };
     }
 
-    test_shape!(sphere, Sphere::new(2.0));
-    test_shape!(cuboid, Cuboid::new(1.0, 2.0, 3.0));
-    test_shape!(cylinder, Cylinder::new(1.0, 4.0));
-    test_shape!(capsule, Capsule3d::new(1.0, 2.0));
+    fn sample_shape<S: ShapeSample>(shape: &S) -> Vec<S::Output> {
+        let mut rng = rand_chacha::ChaCha8Rng::from_seed(Default::default());
+        (0..2_000_000)
+            .map(|_| shape.sample_interior(&mut rng))
+            .collect::<Vec<_>>()
+    }
+
+    fn rejection_sample_shape<S: Bounded3d>(
+        func: impl Fn(&S, Vec3) -> bool,
+        shape: &S,
+    ) -> Vec<Vec3> {
+        let mut rng = rand_chacha::ChaCha8Rng::from_seed(Default::default());
+        let mut points = Vec::new();
+        let aabb = shape.aabb_3d(Vec3::ZERO, Quat::IDENTITY);
+        let aabb_center: Vec3 = aabb.center().into();
+        let cuboid = Cuboid {
+            half_size: aabb.half_size().into(),
+        };
+        while points.len() < 2_000_000 {
+            let point = aabb_center + cuboid.sample_interior(&mut rng);
+            if func(shape, point) {
+                points.push(point);
+            }
+        }
+        points
+    }
+
+    test_shape!(sphere, Sphere::new(2.0), sample_shape);
+    test_shape!(cuboid, Cuboid::new(1.0, 2.0, 3.0), sample_shape);
+    test_shape!(cylinder, Cylinder::new(1.0, 4.0), sample_shape);
+    test_shape!(capsule, Capsule3d::new(1.0, 2.0), sample_shape);
     test_shape!(
         cone,
         Cone {
             radius: 1.0,
             height: 2.0,
-        }
+        },
+        |shape| rejection_sample_shape(cone_contains_point, shape)
     );
     test_shape!(
         conical_frustum,
         ConicalFrustum {
-            radius_top: 1.0,
-            radius_bottom: 2.0,
-            height: 2.0
-        }
+            radius_top: 0.5,
+            radius_bottom: 1.0,
+            height: 1.0
+        },
+        |shape| rejection_sample_shape(conical_frustum_contains_point, shape)
     );
-    test_shape!(torus, Torus::new(1.0, 2.0));
-    test_shape!(tetrahedron, Tetrahedron::default());
+    test_shape!(torus, Torus::new(1.0, 2.0), |shape| rejection_sample_shape(
+        torus_contains_point,
+        shape,
+    ));
+    test_shape!(
+        tetrahedron,
+        Tetrahedron::new(
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 0.0, 1.0),
+        ),
+        sample_shape
+    );
+
+    // TODO: This should be removed once Bevy either has this built-in or it has uniform sampling for cones.
+    fn cone_contains_point(cone: &Cone, point: Vec3) -> bool {
+        let half_height = cone.height * 0.5;
+
+        if point.y < -half_height || point.y > half_height {
+            return false;
+        }
+
+        // a = tip
+        // b = base center
+        let pb_dot_ba = -cone.height * (point.y + half_height);
+
+        // Compute the radius of the circular slice.
+        // Derived geometrically from the triangular cross-section.
+        //
+        // let y = pb_dot_ba / cone.height;
+        // let slope = cone.height / cone.radius;
+        //
+        // let delta_radius = y / slope
+        //                  = y / (cone.height / cone.radius)
+        //                  = y * cone.radius / cone.height
+        //                  = pb_dot_ba / cone.height * cone.radius / cone.height
+        //                  = pb_dot_ba * cone.radius / (cone.height * cone.height);
+        // let radius = cone.radius + delta_radius;
+
+        let delta_radius = pb_dot_ba * cone.radius / cone.height.powi(2);
+        let radius = cone.radius + delta_radius;
+
+        // The squared orthogonal distance from the cone axis
+        let ortho_distance_squared = point.xz().length_squared();
+
+        ortho_distance_squared < radius * radius
+    }
+
+    // TODO: This should be removed once Bevy either has this built-in or it has uniform sampling for conical frusta.
+    fn conical_frustum_contains_point(frustum: &ConicalFrustum, point: Vec3) -> bool {
+        let half_height = frustum.height * 0.5;
+
+        if point.y < -half_height || point.y > half_height {
+            return false;
+        }
+
+        // a = top center
+        // b = bottom center
+        let pb_dot_ba = -frustum.height * (point.y + half_height);
+
+        // Compute the radius of the circular slice.
+        // Derived geometrically from the trapezoidal cross-section.
+        //
+        // let y = pb_dot_ba / frustum.height;
+        // let slope = frustum.height / (frustum.radius_bottom - frustum.radius_top);
+        //
+        // let delta_radius = y / slope
+        //                  = y / (frustum.height / (frustum.radius_bottom - frustum.radius_top))
+        //                  = y * (frustum.radius_bottom - frustum.radius_top) / frustum.height
+        //                  = pb_dot_ba / frustum.height * (frustum.radius_bottom - frustum.radius_top) / frustum.height
+        //                  = pb_dot_ba * (frustum.radius_bottom - frustum.radius_top) / (frustum.height * frustum.height);
+        // let radius = frustum.radius_bottom + delta_radius;
+
+        let delta_radius =
+            pb_dot_ba * (frustum.radius_bottom - frustum.radius_top) / frustum.height.powi(2);
+        let radius = frustum.radius_bottom + delta_radius;
+
+        // The squared orthogonal distance from the frustum axis
+        let ortho_distance_squared = point.xz().length_squared();
+
+        ortho_distance_squared < radius * radius
+    }
+
+    // TODO: This should be removed once Bevy either has this built-in or it has uniform sampling for tori.
+    fn torus_contains_point(torus: &Torus, point: Vec3) -> bool {
+        let minor_radius_squared = torus.minor_radius * torus.minor_radius;
+        (torus.major_radius - point.xz().length()).powi(2) + point.y.powi(2) < minor_radius_squared
+    }
 }

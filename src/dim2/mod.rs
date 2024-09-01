@@ -83,13 +83,14 @@ impl MassProperties2d {
         }
     }
 
-    /// Computes approximate mass properties from the given set of points.
+    /// Computes approximate mass properties from the given set of points representing a shape.
     ///
     /// This can be used to estimate mass properties for arbitrary shapes
     /// by providing a set of sample points from inside the shape.
     ///
     /// The more points there are, and the more uniformly distributed they are,
     /// the more accurate the estimation will be.
+    #[inline]
     pub fn from_point_cloud(points: &[Vec2], mass: impl Into<Mass>) -> Self {
         let mass: Mass = mass.into();
         let points_recip = 1.0 / points.len() as f64;
@@ -97,8 +98,8 @@ impl MassProperties2d {
         let center_of_mass =
             (points.iter().fold(DVec2::ZERO, |acc, p| acc + p.as_dvec2()) * points_recip).as_vec2();
         let unit_angular_inertia = points.iter().fold(0.0, |acc, p| {
-            let r = p.as_dvec2().length_squared();
-            acc + points_recip * r
+            let r = p.distance_squared(center_of_mass) as f64;
+            acc + r * points_recip
         }) as f32;
 
         Self::new(mass, mass.value() * unit_angular_inertia, center_of_mass)
