@@ -8,14 +8,14 @@
 //! ## Example
 //!
 //! ```
-//! use bevy_heavy::{ComputeMassProperties2d, MassProperties2d};
-//! use bevy_math::primitives::Cuboid;
+//! use bevy_heavy::{AngularInertia2d, ComputeMassProperties2d, Mass, MassProperties2d};
+//! use bevy_math::{primitives::Rectangle, Vec2};
 //!
 //! let rectangle = Rectangle::new(2.0, 1.0);
 //! let density = 2.0;
 //!
 //! // You can compute mass properties individually.
-//! let mass = rectangle.mass(2.0);
+//! let mass = rectangle.mass(density);
 //! let angular_inertia = rectangle.angular_inertia(mass);
 //! let center_of_mass = rectangle.center_of_mass();
 //!
@@ -23,9 +23,9 @@
 //! // This can be more efficient when more than one property is needed.
 //! let mass_props = rectangle.mass_properties(density);
 //!
-//! // `MassProperties2d` has several helpers.
-//! let shifted_inertia = mass_props.shifted_angular_inertia(Vec2::new(-3.5, 1.0));
-//! let global_center_of_mass = mass_props.global_center_of_mass(Vec2::new(5.0, 7.5));
+//! // Mass properties have several helpers.
+//! let shifted_inertia = mass_props.angular_inertia.shifted(mass, Vec2::new(-3.5, 1.0));
+//! let global_center_of_mass = mass_props.global_center_of_mass(Vec2::new(5.0, 7.5), 0.0);
 //!
 //! // You can also add and subtract mass properties.
 //! let mass_props_2 = MassProperties2d::new(
@@ -34,7 +34,7 @@
 //!     Vec2::new(0.0, 1.0),
 //! );
 //! let sum = mass_props + mass_props_2;
-//! assert_eq!(sum - mass_props_2, mass_props);
+//! approx::assert_relative_eq!(sum - mass_props_2, mass_props);
 //! ```
 
 #![warn(missing_docs)]

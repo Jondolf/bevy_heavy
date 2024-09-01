@@ -17,9 +17,6 @@ pub struct SymmetricEigen3 {
 
 impl SymmetricEigen3 {
     /// Computes the eigen decomposition of the given symmetric 3x3 matrix.
-    ///
-    /// The eigenvalues are returned in ascending order `eigen1 < eigen2 < eigen3`.
-    /// This can be reversed with the [`reverse`](Self::reverse) method.
     pub fn new(mat: Mat3) -> Self {
         let eigenvalues = Self::eigenvalues(mat);
         let eigenvector1 = Self::eigenvector1(mat, eigenvalues.x);
@@ -51,9 +48,8 @@ impl SymmetricEigen3 {
         let p1 = mat.y_axis.x.powi(2) + mat.z_axis.x.powi(2) + mat.z_axis.y.powi(2);
         if p1 == 0.0 {
             // The matrix is diagonal.
-            let mut eigenvalues = [mat.x_axis.x, mat.y_axis.y, mat.z_axis.z];
-            eigenvalues.sort_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal));
-            Vec3::from_array(eigenvalues)
+            // TODO: Should we sort in ascending order here?
+            Vec3::new(mat.x_axis.x, mat.y_axis.y, mat.z_axis.z)
         } else {
             let q = (mat.x_axis.x + mat.y_axis.y + mat.z_axis.z) / 3.0;
             let p2 = (mat.x_axis.x - q).powi(2)
@@ -230,14 +226,14 @@ mod test {
         let mat = Mat3::from_cols_array_2d(&[[2.0, 0.0, 0.0], [0.0, 5.0, 0.0], [0.0, 0.0, 3.0]]);
         let eigen = SymmetricEigen3::new(mat);
 
-        assert_eq!(eigen.eigenvalues, Vec3::new(2.0, 3.0, 5.0));
+        assert_eq!(eigen.eigenvalues, Vec3::new(2.0, 5.0, 3.0));
         assert_eq!(
             Mat3::from_cols(
                 eigen.eigenvectors.x_axis.normalize().abs(),
                 eigen.eigenvectors.y_axis.normalize().abs(),
                 eigen.eigenvectors.z_axis.normalize().abs()
             ),
-            Mat3::from_cols_array_2d(&[[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]])
+            Mat3::from_cols_array_2d(&[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
         );
     }
 }

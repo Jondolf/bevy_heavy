@@ -224,11 +224,11 @@ impl ComputeMassProperties2d for Capsule2d {
         let circle_mass = circle_area * density;
 
         // Principal inertias
-        let rectangle_inertia = rectangle.angular_inertia(Mass::ONE);
-        let circle_inertia = circle.angular_inertia(Mass::ONE);
+        let rectangle_inertia = rectangle.angular_inertia(rectangle_mass);
+        let circle_inertia = circle.angular_inertia(circle_mass);
 
         // Total inertia
-        let mut capsule_inertia = rectangle_mass * rectangle_inertia + circle_mass * circle_inertia;
+        let mut capsule_inertia = rectangle_inertia + circle_inertia;
 
         // Compensate for the hemicircles being away from the rotation axis using the parallel axis theorem.
         capsule_inertia += AngularInertia2d::new(
@@ -262,11 +262,11 @@ impl ComputeMassProperties2d for Capsule2d {
         let circle_mass = circle_area * density;
 
         // Principal inertias
-        let rectangle_inertia = rectangle.angular_inertia(Mass::ONE);
-        let circle_inertia = circle.angular_inertia(Mass::ONE);
+        let rectangle_inertia = rectangle.angular_inertia(rectangle_mass);
+        let circle_inertia = circle.angular_inertia(circle_mass);
 
         // Total inertia
-        let mut capsule_inertia = rectangle_mass * rectangle_inertia + circle_mass * circle_inertia;
+        let mut capsule_inertia = rectangle_inertia + circle_inertia;
 
         // Compensate for the hemicircles being away from the rotation axis using the parallel axis theorem.
         capsule_inertia += AngularInertia2d::new(
@@ -274,11 +274,7 @@ impl ComputeMassProperties2d for Capsule2d {
                 * circle_mass,
         );
 
-        MassProperties2d::new(
-            Mass::new(rectangle_mass + circle_mass),
-            capsule_inertia,
-            Vec2::ZERO,
-        )
+        MassProperties2d::new(rectangle_mass + circle_mass, capsule_inertia, Vec2::ZERO)
     }
 }
 
@@ -521,4 +517,74 @@ impl<const N: usize> ComputeMassProperties2d for Polyline2d<N> {
     fn mass_properties(&self, _density: f32) -> MassProperties2d {
         MassProperties2d::ZERO
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use approx::assert_relative_eq;
+    use bevy_math::ShapeSample;
+    use rand::SeedableRng;
+
+    macro_rules! test_shape {
+        ($test_name:tt, $shape:expr) => {
+            #[test]
+            fn $test_name() {
+                let shape = $shape;
+
+                // Sample enough points to have a close enough point cloud representation of the shape.
+                let mut rng = rand_chacha::ChaCha8Rng::from_seed(Default::default());
+                let points = (0..1_000_000)
+                    .map(|_| shape.sample_interior(&mut rng))
+                    .collect::<Vec<_>>();
+
+                // Compute the mass properties to test.
+                let density = 2.0;
+                let mass = shape.mass(density);
+                let angular_inertia = shape.angular_inertia(mass);
+                let center_of_mass = shape.center_of_mass();
+
+                // First, test that the individually computed properties match the full properties.
+                let mass_props = shape.mass_properties(density);
+                assert_relative_eq!(mass.value(), mass_props.mass.value());
+                assert_relative_eq!(angular_inertia.value(), mass_props.angular_inertia.value());
+                assert_relative_eq!(center_of_mass, mass_props.center_of_mass);
+
+                // Estimate the expected mass properties using the point cloud.
+                // Note: We could also approximate the mass using Monte Carlo integration.
+                //       This would require point containment checks.
+                let expected = MassProperties2d::from_point_cloud(&points, mass);
+
+                assert_relative_eq!(mass.value(), expected.mass.value());
+                assert_relative_eq!(
+                    angular_inertia.value(),
+                    expected.angular_inertia.value(),
+                    epsilon = 0.1
+                );
+                assert_relative_eq!(center_of_mass, expected.center_of_mass, epsilon = 0.01);
+            }
+        };
+    }
+
+    // TODO: Test randomized shape definitions.
+
+    test_shape!(circle, Circle::new(2.0));
+    //test_shape!(circular_sector, CircularSector::new(2.0, TAU));
+    //test_shape!(circular_segment, CircularSegment::new(2.0, TAU));
+    test_shape!(ellipse, Ellipse::new(2.0, 1.0));
+    test_shape!(annulus, Annulus::new(1.0, 2.0));
+    test_shape!(
+        triangle,
+        Triangle2d::new(
+            Vec2::new(0.0, 0.0),
+            Vec2::new(2.0, 0.0),
+            Vec2::new(1.0, 1.0)
+        )
+    );
+    test_shape!(rectangle, Rectangle::new(2.0, 1.0));
+    // test_shape!(rhombus, Rhombus::new(2.0, 1.0));
+    // test_shape!(regular_polygon, RegularPolygon::new(2.0, 6));
+    // FIXME: The capsule angular inertia is not accurate for taller capsules.
+    test_shape!(capsule, Capsule2d::new(1.0, 0.25));
+    // test_shape!(polygon, Polygon::new([Vec2::ZERO, Vec2::X, Vec2::Y]));
 }

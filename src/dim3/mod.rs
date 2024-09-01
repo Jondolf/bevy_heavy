@@ -1,4 +1,4 @@
-use bevy_math::{Mat3, Quat, Vec3};
+use bevy_math::{DVec3, Mat3, Quat, Vec3};
 
 mod angular_inertia;
 pub use angular_inertia::{AngularInertia3dError, AngularInertiaTensor};
@@ -106,8 +106,17 @@ impl MassProperties3d {
     /// Creates a new [`MassProperties3d`] from a given mass, principal angular inertia,
     /// and center of mass in local space.
     #[inline]
-    pub fn new(mass: impl Into<Mass>, angular_inertia: Vec3, center_of_mass: Vec3) -> Self {
-        Self::new_with_local_frame(mass, angular_inertia, Quat::IDENTITY, center_of_mass)
+    pub fn new(
+        mass: impl Into<Mass>,
+        principal_angular_inertia: Vec3,
+        center_of_mass: Vec3,
+    ) -> Self {
+        Self::new_with_local_frame(
+            mass,
+            principal_angular_inertia,
+            Quat::IDENTITY,
+            center_of_mass,
+        )
     }
 
     /// Creates a new [`MassProperties3d`] from a given mass, principal angular inertia,
@@ -148,6 +157,42 @@ impl MassProperties3d {
             mass,
             principal_inertia,
             principal_inertia_local_frame,
+            center_of_mass,
+        )
+    }
+
+    /// Computes approximate mass properties from the given set of points.
+    ///
+    /// This can be used to estimate mass properties for arbitrary shapes
+    /// by providing a set of sample points from inside the shape.
+    ///
+    /// The more points there are, and the more uniformly distributed they are,
+    /// the more accurate the estimation will be.
+    pub fn from_point_cloud(
+        points: &[Vec3],
+        mass: impl Into<Mass>,
+        local_inertial_frame: Quat,
+    ) -> Self {
+        let mass = mass.into();
+        let points_recip = 1.0 / points.len() as f64;
+
+        let center_of_mass =
+            (points.iter().fold(DVec3::ZERO, |acc, p| acc + p.as_dvec3()) * points_recip).as_vec3();
+        let unit_angular_inertia = points
+            .iter()
+            .fold(DVec3::ZERO, |acc, p| {
+                let p = p.as_dvec3();
+                let r_x = p.reject_from_normalized(DVec3::X).length_squared();
+                let r_y = p.reject_from_normalized(DVec3::Y).length_squared();
+                let r_z = p.reject_from_normalized(DVec3::Z).length_squared();
+                acc + DVec3::new(r_x, r_y, r_z) * points_recip
+            })
+            .as_vec3();
+
+        Self::new_with_local_frame(
+            mass,
+            mass.value() * unit_angular_inertia,
+            local_inertial_frame,
             center_of_mass,
         )
     }
@@ -235,7 +280,7 @@ impl std::ops::Add for MassProperties3d {
 
         // Compute the new principal angular inertia, taking the new center of mass into account.
         let i1 = self.shifted_angular_inertia_tensor(new_center_of_mass - self.center_of_mass);
-        let i2 = self.shifted_angular_inertia_tensor(new_center_of_mass - other.center_of_mass);
+        let i2 = other.shifted_angular_inertia_tensor(new_center_of_mass - other.center_of_mass);
         let new_angular_inertia = AngularInertiaTensor::from_mat3(i1.value() + i2.value());
 
         Self::new_with_angular_inertia_tensor(new_mass, new_angular_inertia, new_center_of_mass)
@@ -274,7 +319,7 @@ impl std::ops::Sub for MassProperties3d {
 
         // Compute the new principal angular inertia, taking the new center of mass into account.
         let i1 = self.shifted_angular_inertia_tensor(new_center_of_mass - self.center_of_mass);
-        let i2 = self.shifted_angular_inertia_tensor(new_center_of_mass - other.center_of_mass);
+        let i2 = other.shifted_angular_inertia_tensor(new_center_of_mass - other.center_of_mass);
         let new_angular_inertia = AngularInertiaTensor::from_mat3(i1.value() - i2.value());
 
         Self::new_with_angular_inertia_tensor(new_mass, new_angular_inertia, new_center_of_mass)
@@ -285,5 +330,69 @@ impl std::ops::SubAssign for MassProperties3d {
     #[inline]
     fn sub_assign(&mut self, other: Self) {
         *self = *self - other;
+    }
+}
+
+#[cfg(any(feature = "approx", test))]
+impl approx::AbsDiffEq for MassProperties3d {
+    type Epsilon = f32;
+    fn default_epsilon() -> f32 {
+        f32::EPSILON
+    }
+    fn abs_diff_eq(&self, other: &Self, epsilon: f32) -> bool {
+        self.mass.abs_diff_eq(&other.mass, epsilon)
+            && self
+                .principal_angular_inertia
+                .abs_diff_eq(other.principal_angular_inertia, epsilon)
+            && self
+                .local_inertial_frame
+                .abs_diff_eq(other.local_inertial_frame, epsilon)
+            && self
+                .center_of_mass
+                .abs_diff_eq(other.center_of_mass, epsilon)
+    }
+}
+
+#[cfg(any(feature = "approx", test))]
+impl approx::RelativeEq for MassProperties3d {
+    fn default_max_relative() -> f32 {
+        f32::EPSILON
+    }
+    fn relative_eq(&self, other: &Self, epsilon: f32, max_relative: f32) -> bool {
+        self.mass.relative_eq(&other.mass, epsilon, max_relative)
+            && self.principal_angular_inertia.relative_eq(
+                &other.principal_angular_inertia,
+                epsilon,
+                max_relative,
+            )
+            && self.local_inertial_frame.relative_eq(
+                &other.local_inertial_frame,
+                epsilon,
+                max_relative,
+            )
+            && self
+                .center_of_mass
+                .relative_eq(&other.center_of_mass, epsilon, max_relative)
+    }
+}
+
+#[cfg(any(feature = "approx", test))]
+impl approx::UlpsEq for MassProperties3d {
+    fn default_max_ulps() -> u32 {
+        4
+    }
+    fn ulps_eq(&self, other: &Self, epsilon: f32, max_ulps: u32) -> bool {
+        self.mass.ulps_eq(&other.mass, epsilon, max_ulps)
+            && self.principal_angular_inertia.ulps_eq(
+                &other.principal_angular_inertia,
+                epsilon,
+                max_ulps,
+            )
+            && self
+                .local_inertial_frame
+                .ulps_eq(&other.local_inertial_frame, epsilon, max_ulps)
+            && self
+                .center_of_mass
+                .ulps_eq(&other.center_of_mass, epsilon, max_ulps)
     }
 }

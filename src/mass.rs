@@ -161,3 +161,34 @@ impl DivAssign<f32> for Mass {
         self.0 /= rhs;
     }
 }
+
+#[cfg(any(feature = "approx", test))]
+impl approx::AbsDiffEq for Mass {
+    type Epsilon = f32;
+    fn default_epsilon() -> f32 {
+        f32::EPSILON
+    }
+    fn abs_diff_eq(&self, other: &Self, epsilon: f32) -> bool {
+        self.0.abs_diff_eq(&other.0, epsilon)
+    }
+}
+
+#[cfg(any(feature = "approx", test))]
+impl approx::RelativeEq for Mass {
+    fn default_max_relative() -> f32 {
+        f32::EPSILON
+    }
+    fn relative_eq(&self, other: &Self, epsilon: f32, max_relative: f32) -> bool {
+        self.0.relative_eq(&other.0, epsilon, max_relative)
+    }
+}
+
+#[cfg(any(feature = "approx", test))]
+impl approx::UlpsEq for Mass {
+    fn default_max_ulps() -> u32 {
+        4
+    }
+    fn ulps_eq(&self, other: &Self, epsilon: f32, max_ulps: u32) -> bool {
+        self.0.ulps_eq(&other.0, epsilon, max_ulps)
+    }
+}
