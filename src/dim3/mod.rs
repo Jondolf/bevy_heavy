@@ -1,7 +1,7 @@
 use bevy_math::{DVec3, Mat3, Quat, Vec3};
 
 mod angular_inertia;
-pub use angular_inertia::{AngularInertia3dError, AngularInertiaTensor};
+pub use angular_inertia::{AngularInertiaTensor, AngularInertiaTensorError};
 
 /// [`ComputeMassProperties3d`] implementations for 3D geometric primitives.
 mod impls;
@@ -9,12 +9,10 @@ mod impls;
 mod eigen3;
 pub use eigen3::SymmetricEigen3;
 
-use crate::Mass;
-
 /// A trait for computing [`MassProperties3d`] for 3D objects.
 pub trait ComputeMassProperties3d {
     /// Computes the mass of the object with a given `density`.
-    fn mass(&self, density: f32) -> Mass;
+    fn mass(&self, density: f32) -> f32;
 
     /// Computes the principal angular inertia corresponding to a unit mass.
     #[doc(alias = "unit_principal_moment_of_inertia")]
@@ -23,9 +21,8 @@ pub trait ComputeMassProperties3d {
     /// Computes the principal angular inertia corresponding to the given `mass`.
     #[inline]
     #[doc(alias = "principal_moment_of_inertia")]
-    fn principal_angular_inertia(&self, mass: impl Into<Mass>) -> Vec3 {
-        let mass: Mass = mass.into();
-        mass.value() * self.unit_principal_angular_inertia()
+    fn principal_angular_inertia(&self, mass: f32) -> Vec3 {
+        mass * self.unit_principal_angular_inertia()
     }
 
     /// Computes the orientation of the inertial frame used by the principal axes of inertia in local space.
@@ -48,9 +45,8 @@ pub trait ComputeMassProperties3d {
 
     /// Computes the 3x3 [`AngularInertiaTensor`] corresponding to the given `mass`.
     #[inline]
-    fn angular_inertia_tensor(&self, mass: impl Into<Mass>) -> AngularInertiaTensor {
-        let mass: Mass = mass.into();
-        mass.value() * self.unit_angular_inertia_tensor()
+    fn angular_inertia_tensor(&self, mass: f32) -> AngularInertiaTensor {
+        mass * self.unit_angular_inertia_tensor()
     }
 
     /// Computes the local center of mass.
@@ -69,16 +65,15 @@ pub trait ComputeMassProperties3d {
     }
 }
 
-/// The [mass], [angular inertia], and local center of mass of an object in 3D space.
+/// The mass, [angular inertia], and local center of mass of an object in 3D space.
 ///
-/// [mass]: Mass
 /// [angular inertia]: AngularInertiaTensor
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "bevy_reflect", derive(bevy_reflect::Reflect))]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct MassProperties3d {
     /// The mass.
-    pub mass: Mass,
+    pub mass: f32,
     /// The angular inertia along the principal axes.
     pub principal_angular_inertia: Vec3,
     /// The orientation of the local inertial frame, defining the principal axes.
@@ -97,7 +92,7 @@ impl Default for MassProperties3d {
 impl MassProperties3d {
     /// Zero mass and angular inertia.
     pub const ZERO: Self = Self {
-        mass: Mass::ZERO,
+        mass: 0.0,
         principal_angular_inertia: Vec3::ZERO,
         local_inertial_frame: Quat::IDENTITY,
         center_of_mass: Vec3::ZERO,
@@ -106,11 +101,7 @@ impl MassProperties3d {
     /// Creates a new [`MassProperties3d`] from a given mass, principal angular inertia,
     /// and center of mass in local space.
     #[inline]
-    pub fn new(
-        mass: impl Into<Mass>,
-        principal_angular_inertia: Vec3,
-        center_of_mass: Vec3,
-    ) -> Self {
+    pub fn new(mass: f32, principal_angular_inertia: Vec3, center_of_mass: Vec3) -> Self {
         Self::new_with_local_frame(
             mass,
             principal_angular_inertia,
@@ -126,13 +117,13 @@ impl MassProperties3d {
     /// by the `local_inertial_frame`, expressed in local space.
     #[inline]
     pub fn new_with_local_frame(
-        mass: impl Into<Mass>,
+        mass: f32,
         principal_angular_inertia: Vec3,
         local_inertial_frame: Quat,
         center_of_mass: Vec3,
     ) -> Self {
         Self {
-            mass: mass.into(),
+            mass,
             principal_angular_inertia,
             local_inertial_frame,
             center_of_mass,
@@ -146,7 +137,7 @@ impl MassProperties3d {
     /// values and local principal inertia frme.
     #[inline]
     pub fn new_with_angular_inertia_tensor(
-        mass: impl Into<Mass>,
+        mass: f32,
         tensor: impl Into<AngularInertiaTensor>,
         center_of_mass: Vec3,
     ) -> Self {
@@ -162,12 +153,7 @@ impl MassProperties3d {
     /// The more points there are, and the more uniformly distributed they are,
     /// the more accurate the estimation will be.
     #[inline]
-    pub fn from_point_cloud(
-        points: &[Vec3],
-        mass: impl Into<Mass>,
-        local_inertial_frame: Quat,
-    ) -> Self {
-        let mass = mass.into();
+    pub fn from_point_cloud(points: &[Vec3], mass: f32, local_inertial_frame: Quat) -> Self {
         let points_recip = 1.0 / points.len() as f64;
 
         let center_of_mass =
@@ -185,7 +171,7 @@ impl MassProperties3d {
 
         Self::new_with_local_frame(
             mass,
-            mass.value() * unit_angular_inertia,
+            mass * unit_angular_inertia,
             local_inertial_frame,
             center_of_mass,
         )
@@ -206,7 +192,7 @@ impl MassProperties3d {
         )
     }
 
-    /// Computes the inertia tensor at a given `offset`.
+    /// Computes the angular inertia tensor at a given `offset`.
     #[inline]
     pub fn shifted_angular_inertia_tensor(&self, offset: Vec3) -> AngularInertiaTensor {
         self.angular_inertia_tensor().shifted(self.mass, offset)
@@ -241,13 +227,10 @@ impl MassProperties3d {
 
     /// Sets the mass to the given `new_mass`. This also affects the angular inertia.
     #[inline]
-    pub fn set_mass(&mut self, new_mass: impl Into<Mass>) {
-        let new_mass = new_mass.into();
-
+    pub fn set_mass(&mut self, new_mass: f32) {
         // Adjust angular inertia based on new mass.
-        self.principal_angular_inertia /= self.mass.value();
-        self.principal_angular_inertia *= new_mass.value();
-
+        self.principal_angular_inertia /= self.mass;
+        self.principal_angular_inertia *= new_mass;
         self.mass = new_mass;
     }
 }
@@ -268,14 +251,13 @@ impl std::ops::Add for MassProperties3d {
         let new_mass = mass1 + mass2;
 
         // The new center of mass is the weighted average of the centers of masses of `self` and `other`.
-        let new_center_of_mass = (self.center_of_mass * mass1.value()
-            + other.center_of_mass * mass2.value())
-            / new_mass.value();
+        let new_center_of_mass =
+            (self.center_of_mass * mass1 + other.center_of_mass * mass2) / new_mass;
 
         // Compute the new principal angular inertia, taking the new center of mass into account.
         let i1 = self.shifted_angular_inertia_tensor(new_center_of_mass - self.center_of_mass);
         let i2 = other.shifted_angular_inertia_tensor(new_center_of_mass - other.center_of_mass);
-        let new_angular_inertia = AngularInertiaTensor::from_mat3(i1.value() + i2.value());
+        let new_angular_inertia = AngularInertiaTensor::from_mat3(i1.as_mat3() + i2.as_mat3());
 
         Self::new_with_angular_inertia_tensor(new_mass, new_angular_inertia, new_center_of_mass)
     }
@@ -299,22 +281,25 @@ impl std::ops::Sub for MassProperties3d {
 
         let mass1 = self.mass;
         let mass2 = other.mass;
-        let Ok(new_mass) = Mass::try_new(mass1.value() - mass2.value()) else {
+
+        if mass1 <= mass2 {
+            // The result would have non-positive mass.
             return Self {
                 center_of_mass: self.center_of_mass,
                 ..Self::ZERO
             };
-        };
+        }
+
+        let new_mass = mass1 - mass2;
 
         // The new center of mass is the negated weighted average of the centers of masses of `self` and `other`.
-        let new_center_of_mass = (self.center_of_mass * mass1.value()
-            - other.center_of_mass * mass2.value())
-            / new_mass.value();
+        let new_center_of_mass =
+            (self.center_of_mass * mass1 - other.center_of_mass * mass2) / new_mass;
 
         // Compute the new principal angular inertia, taking the new center of mass into account.
         let i1 = self.shifted_angular_inertia_tensor(new_center_of_mass - self.center_of_mass);
         let i2 = other.shifted_angular_inertia_tensor(new_center_of_mass - other.center_of_mass);
-        let new_angular_inertia = AngularInertiaTensor::from_mat3(i1.value() - i2.value());
+        let new_angular_inertia = AngularInertiaTensor::from_mat3(i1.as_mat3() - i2.as_mat3());
 
         Self::new_with_angular_inertia_tensor(new_mass, new_angular_inertia, new_center_of_mass)
     }

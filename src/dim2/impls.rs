@@ -1,6 +1,4 @@
-use crate::Mass;
-
-use super::{AngularInertia2d, ComputeMassProperties2d, MassProperties2d};
+use super::{ComputeMassProperties2d, MassProperties2d};
 use bevy_math::{
     primitives::{
         Annulus, Arc2d, BoxedPolygon, BoxedPolyline2d, Capsule2d, Circle, CircularSector,
@@ -12,13 +10,13 @@ use bevy_math::{
 
 impl ComputeMassProperties2d for Circle {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
-        Mass::new(self.area() * density)
+    fn mass(&self, density: f32) -> f32 {
+        self.area() * density
     }
 
     #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
-        AngularInertia2d::new(self.radius.powi(2) / 2.0)
+    fn unit_angular_inertia(&self) -> f32 {
+        self.radius.powi(2) / 2.0
     }
 
     #[inline]
@@ -29,13 +27,13 @@ impl ComputeMassProperties2d for Circle {
 
 impl ComputeMassProperties2d for CircularSector {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
-        Mass::new(self.area() * density)
+    fn mass(&self, density: f32) -> f32 {
+        self.area() * density
     }
 
     #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
-        AngularInertia2d::new(0.5 * self.radius().powi(4) * self.angle())
+    fn unit_angular_inertia(&self) -> f32 {
+        0.5 * self.radius().powi(4) * self.angle()
     }
 
     #[inline]
@@ -48,17 +46,15 @@ impl ComputeMassProperties2d for CircularSector {
 
 impl ComputeMassProperties2d for CircularSegment {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
-        Mass::new(self.area() * density)
+    fn mass(&self, density: f32) -> f32 {
+        self.area() * density
     }
 
     #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
+    fn unit_angular_inertia(&self) -> f32 {
         let angle = self.angle();
         let (sin, cos) = angle.sin_cos();
-        AngularInertia2d::new(
-            self.radius().powi(4) / 4.0 * (angle - sin + 2.0 / 3.0 * sin * (1.0 - cos) / 2.0),
-        )
+        self.radius().powi(4) / 4.0 * (angle - sin + 2.0 / 3.0 * sin * (1.0 - cos) / 2.0)
     }
 
     #[inline]
@@ -71,13 +67,13 @@ impl ComputeMassProperties2d for CircularSegment {
 
 impl ComputeMassProperties2d for Ellipse {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
-        Mass::new(self.area() * density)
+    fn mass(&self, density: f32) -> f32 {
+        self.area() * density
     }
 
     #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
-        AngularInertia2d::new(self.half_size.length_squared() / 4.0)
+    fn unit_angular_inertia(&self) -> f32 {
+        self.half_size.length_squared() / 4.0
     }
 
     #[inline]
@@ -88,15 +84,13 @@ impl ComputeMassProperties2d for Ellipse {
 
 impl ComputeMassProperties2d for Annulus {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
-        Mass::new(self.area() * density)
+    fn mass(&self, density: f32) -> f32 {
+        self.area() * density
     }
 
     #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
-        AngularInertia2d::new(
-            0.5 * (self.outer_circle.radius.powi(2) + self.inner_circle.radius.powi(2)),
-        )
+    fn unit_angular_inertia(&self) -> f32 {
+        0.5 * (self.outer_circle.radius.powi(2) + self.inner_circle.radius.powi(2))
     }
 
     #[inline]
@@ -107,22 +101,20 @@ impl ComputeMassProperties2d for Annulus {
 
 impl ComputeMassProperties2d for Triangle2d {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
-        Mass::new(self.area() * density)
+    fn mass(&self, density: f32) -> f32 {
+        self.area() * density
     }
 
     #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
+    fn unit_angular_inertia(&self) -> f32 {
         // Adapted from Box2D: https://github.com/erincatto/box2d/blob/411acc32eb6d4f2e96fc70ddbdf01fe5f9b16230/src/collision/b2_polygon_shape.cpp#L274
 
         // Note: The center of mass is used here, unlike in Box2D's or Parry's version.
         let center_of_mass = self.center_of_mass();
         let com_a = self.vertices[1] - center_of_mass;
         let com_c = self.vertices[2] - center_of_mass;
-        let angular_inertia =
-            (com_a.length_squared() + com_a.dot(com_c) + com_c.length_squared()) / 6.0;
 
-        AngularInertia2d::new(angular_inertia)
+        (com_a.length_squared() + com_a.dot(com_c) + com_c.length_squared()) / 6.0
     }
 
     #[inline]
@@ -136,10 +128,10 @@ impl ComputeMassProperties2d for Triangle2d {
         let center_of_mass = self.center_of_mass();
 
         if area < f32::EPSILON {
-            return MassProperties2d::new(Mass::ZERO, AngularInertia2d::ZERO, center_of_mass);
+            return MassProperties2d::new(0.0, 0.0, center_of_mass);
         }
 
-        let mass = Mass::new(area * density);
+        let mass = area * density;
 
         MassProperties2d::new(mass, self.angular_inertia(mass), center_of_mass)
     }
@@ -147,13 +139,13 @@ impl ComputeMassProperties2d for Triangle2d {
 
 impl ComputeMassProperties2d for Rectangle {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
-        Mass::new(self.area() * density)
+    fn mass(&self, density: f32) -> f32 {
+        self.area() * density
     }
 
     #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
-        AngularInertia2d::new(self.half_size.length_squared() / 3.0)
+    fn unit_angular_inertia(&self) -> f32 {
+        self.half_size.length_squared() / 3.0
     }
 
     #[inline]
@@ -164,13 +156,13 @@ impl ComputeMassProperties2d for Rectangle {
 
 impl ComputeMassProperties2d for Rhombus {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
-        Mass::new(self.area() * density)
+    fn mass(&self, density: f32) -> f32 {
+        self.area() * density
     }
 
     #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
-        AngularInertia2d::new(self.half_diagonals.length_squared() / 12.0)
+    fn unit_angular_inertia(&self) -> f32 {
+        self.half_diagonals.length_squared() / 12.0
     }
 
     #[inline]
@@ -181,16 +173,14 @@ impl ComputeMassProperties2d for Rhombus {
 
 impl ComputeMassProperties2d for RegularPolygon {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
-        Mass::new(self.area() * density)
+    fn mass(&self, density: f32) -> f32 {
+        self.area() * density
     }
 
     #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
+    fn unit_angular_inertia(&self) -> f32 {
         let half_external_angle = std::f32::consts::PI / self.sides as f32;
-        AngularInertia2d::new(
-            self.circumradius().powi(2) / 6.0 * (1.0 + 2.0 * half_external_angle.cos().powi(2)),
-        )
+        self.circumradius().powi(2) / 6.0 * (1.0 + 2.0 * half_external_angle.cos().powi(2))
     }
 
     #[inline]
@@ -201,13 +191,13 @@ impl ComputeMassProperties2d for RegularPolygon {
 
 impl ComputeMassProperties2d for Capsule2d {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
+    fn mass(&self, density: f32) -> f32 {
         let area = self.radius * (std::f32::consts::PI * self.radius + 4.0 * self.half_length);
-        Mass::new(area * density)
+        area * density
     }
 
     #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
+    fn unit_angular_inertia(&self) -> f32 {
         // The rectangle and hemicircle parts
         let rectangle = Rectangle {
             half_size: Vec2::new(self.radius, self.half_length),
@@ -220,7 +210,7 @@ impl ComputeMassProperties2d for Capsule2d {
         let circle_area = circle.area();
 
         // Masses
-        let density = Mass::ONE / (rectangle_area + circle_area);
+        let density = 1.0 / (rectangle_area + circle_area);
         let rectangle_mass = rectangle_area * density;
         let circle_mass = circle_area * density;
 
@@ -232,10 +222,9 @@ impl ComputeMassProperties2d for Capsule2d {
         let mut capsule_inertia = rectangle_inertia + circle_inertia;
 
         // Compensate for the hemicircles being away from the rotation axis using the parallel axis theorem.
-        capsule_inertia += AngularInertia2d::new(
-            (rectangle_height.powi(2) * 0.25 + rectangle_height * self.radius * 3.0 / 8.0)
-                * *circle_mass,
-        );
+        capsule_inertia += (rectangle_height.powi(2) * 0.25
+            + rectangle_height * self.radius * 3.0 / 8.0)
+            * circle_mass;
 
         capsule_inertia
     }
@@ -270,10 +259,9 @@ impl ComputeMassProperties2d for Capsule2d {
         let mut capsule_inertia = rectangle_inertia + circle_inertia;
 
         // Compensate for the hemicircles being away from the rotation axis using the parallel axis theorem.
-        capsule_inertia += AngularInertia2d::new(
-            (rectangle_height.powi(2) * 0.25 + rectangle_height * self.radius * 3.0 / 8.0)
-                * circle_mass,
-        );
+        capsule_inertia += (rectangle_height.powi(2) * 0.25
+            + rectangle_height * self.radius * 3.0 / 8.0)
+            * circle_mass;
 
         MassProperties2d::new(rectangle_mass + circle_mass, capsule_inertia, Vec2::ZERO)
     }
@@ -281,14 +269,14 @@ impl ComputeMassProperties2d for Capsule2d {
 
 impl<const N: usize> ComputeMassProperties2d for Polygon<N> {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
+    fn mass(&self, density: f32) -> f32 {
         // The polygon is assumed to be convex.
         let area = convex_polygon_area(&self.vertices);
-        Mass::new(area * density)
+        area * density
     }
 
     #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
+    fn unit_angular_inertia(&self) -> f32 {
         convex_polygon_unit_angular_inertia(&self.vertices)
     }
 
@@ -305,14 +293,14 @@ impl<const N: usize> ComputeMassProperties2d for Polygon<N> {
 
 impl ComputeMassProperties2d for BoxedPolygon {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
+    fn mass(&self, density: f32) -> f32 {
         // The polygon is assumed to be convex.
         let area = convex_polygon_area(&self.vertices);
-        Mass::new(area * density)
+        area * density
     }
 
     #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
+    fn unit_angular_inertia(&self) -> f32 {
         convex_polygon_unit_angular_inertia(&self.vertices)
     }
 
@@ -333,11 +321,11 @@ fn convex_polygon_mass_properties(vertices: &[Vec2], density: f32) -> MassProper
     let (area, center_of_mass) = convex_polygon_area_and_com(vertices);
 
     if area < f32::EPSILON {
-        return MassProperties2d::new(Mass::ZERO, AngularInertia2d::ZERO, center_of_mass);
+        return MassProperties2d::new(0.0, 0.0, center_of_mass);
     }
 
     // Initialize polygon inertia.
-    let mut inertia = AngularInertia2d::ZERO;
+    let mut inertia = 0.0;
 
     // Create a peekable iterator over the polygon vertices.
     let mut iter = vertices.iter().peekable();
@@ -351,23 +339,23 @@ fn convex_polygon_mass_properties(vertices: &[Vec2], density: f32) -> MassProper
             iter.peek().copied().copied().unwrap_or(first),
             center_of_mass,
         );
-        *inertia.value_mut() += *triangle.unit_angular_inertia() * triangle.area();
+        inertia += triangle.unit_angular_inertia() * triangle.area();
     }
 
-    MassProperties2d::new(Mass::new(area * density), inertia * density, center_of_mass)
+    MassProperties2d::new(area * density, inertia * density, center_of_mass)
 }
 
 #[inline]
-fn convex_polygon_unit_angular_inertia(vertices: &[Vec2]) -> AngularInertia2d {
+fn convex_polygon_unit_angular_inertia(vertices: &[Vec2]) -> f32 {
     // The polygon is assumed to be convex.
     let (area, center_of_mass) = convex_polygon_area_and_com(vertices);
 
     if area < f32::EPSILON {
-        return AngularInertia2d::ZERO;
+        return 0.0;
     }
 
     // Initialize polygon inertia.
-    let mut inertia = AngularInertia2d::ZERO;
+    let mut inertia = 0.0;
 
     // Create a peekable iterator over the polygon vertices.
     let mut iter = vertices.iter().peekable();
@@ -381,7 +369,7 @@ fn convex_polygon_unit_angular_inertia(vertices: &[Vec2]) -> AngularInertia2d {
             iter.peek().copied().copied().unwrap_or(first),
             center_of_mass,
         );
-        *inertia.value_mut() += triangle.unit_angular_inertia() * triangle.area();
+        inertia += triangle.unit_angular_inertia() * triangle.area();
     }
 
     inertia / area
@@ -459,18 +447,18 @@ macro_rules! impl_zero_mass_properties_2d {
         $(
             impl ComputeMassProperties2d for $shape {
                 #[inline]
-                fn mass(&self, _density: f32) -> Mass {
-                    Mass::ZERO
+                fn mass(&self, _density: f32) -> f32 {
+                    0.0
                 }
 
                 #[inline]
-                fn unit_angular_inertia(&self) -> AngularInertia2d {
-                    AngularInertia2d::ZERO
+                fn unit_angular_inertia(&self) -> f32 {
+                    0.0
                 }
 
                 #[inline]
-                fn angular_inertia(&self, _mass: impl Into<Mass>) -> AngularInertia2d {
-                    AngularInertia2d::ZERO
+                fn angular_inertia(&self, _mass: f32) -> f32 {
+                    0.0
                 }
 
                 #[inline]
@@ -495,18 +483,18 @@ impl_zero_mass_properties_2d!(BoxedPolyline2d);
 
 impl<const N: usize> ComputeMassProperties2d for Polyline2d<N> {
     #[inline]
-    fn mass(&self, _density: f32) -> Mass {
-        Mass::ZERO
+    fn mass(&self, _density: f32) -> f32 {
+        0.0
     }
 
     #[inline]
-    fn unit_angular_inertia(&self) -> AngularInertia2d {
-        AngularInertia2d::ZERO
+    fn unit_angular_inertia(&self) -> f32 {
+        0.0
     }
 
     #[inline]
-    fn angular_inertia(&self, _mass: impl Into<Mass>) -> AngularInertia2d {
-        AngularInertia2d::ZERO
+    fn angular_inertia(&self, _mass: f32) -> f32 {
+        0.0
     }
 
     #[inline]
@@ -547,8 +535,8 @@ mod tests {
 
                 // First, test that the individually computed properties match the full properties.
                 let mass_props = shape.mass_properties(density);
-                assert_relative_eq!(mass.value(), mass_props.mass.value());
-                assert_relative_eq!(angular_inertia.value(), mass_props.angular_inertia.value());
+                assert_relative_eq!(mass, mass_props.mass);
+                assert_relative_eq!(angular_inertia, mass_props.angular_inertia);
                 assert_relative_eq!(center_of_mass, mass_props.center_of_mass);
 
                 // Estimate the expected mass properties using the point cloud.
@@ -556,12 +544,8 @@ mod tests {
                 //       This would require point containment checks.
                 let expected = MassProperties2d::from_point_cloud(&points, mass);
 
-                assert_relative_eq!(mass.value(), expected.mass.value());
-                assert_relative_eq!(
-                    angular_inertia.value(),
-                    expected.angular_inertia.value(),
-                    epsilon = 0.1
-                );
+                assert_relative_eq!(mass, expected.mass);
+                assert_relative_eq!(angular_inertia, expected.angular_inertia, epsilon = 0.1);
                 assert_relative_eq!(center_of_mass, expected.center_of_mass, epsilon = 0.01);
             }
         };
@@ -585,7 +569,10 @@ mod tests {
     test_shape!(rectangle, Rectangle::new(2.0, 1.0));
     // test_shape!(rhombus, Rhombus::new(2.0, 1.0));
     // test_shape!(regular_polygon, RegularPolygon::new(2.0, 6));
+
+    // TODO: The capsule sampling is wrong in 0.14, but fixed by https://github.com/bevyengine/bevy/pull/15191
     // FIXME: The capsule angular inertia is not accurate for taller capsules.
-    test_shape!(capsule, Capsule2d::new(1.0, 0.25));
+    // test_shape!(capsule, Capsule2d::new(1.0, 0.25));
+
     // test_shape!(polygon, Polygon::new([Vec2::ZERO, Vec2::X, Vec2::Y]));
 }

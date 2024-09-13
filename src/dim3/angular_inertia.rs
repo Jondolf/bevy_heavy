@@ -1,14 +1,14 @@
 use std::ops::*;
 
-use crate::{Mass, MatExt};
+use crate::MatExt;
 use bevy_math::{Mat3, Quat, Vec3};
 
 use super::SymmetricEigen3;
 
-// TODO: Add errors for Asymmetric and non-positive definite matrices.
+// TODO: Add errors for asymmetric and non-positive definite matrices.
 /// An error returned for an invalid angular inertia in 3D.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum AngularInertia3dError {
+pub enum AngularInertiaTensorError {
     /// The mass is negative.
     Negative,
     /// The mass is NaN.
@@ -87,13 +87,13 @@ impl AngularInertiaTensor {
     ///
     /// # Errors
     ///
-    /// Returns [`Err(AngularInertia3dError)`](AngularInertia3dError) if any component of the principal angular inertia is negative.
+    /// Returns [`Err(AngularInertiaTensorError)`](AngularInertiaTensorError) if any component of the principal angular inertia is negative.
     #[inline]
-    pub fn try_new(principal_angular_inertia: Vec3) -> Result<Self, AngularInertia3dError> {
+    pub fn try_new(principal_angular_inertia: Vec3) -> Result<Self, AngularInertiaTensorError> {
         if !principal_angular_inertia.cmpge(Vec3::ZERO).all() {
-            Err(AngularInertia3dError::Negative)
+            Err(AngularInertiaTensorError::Negative)
         } else if principal_angular_inertia.is_nan() {
-            Err(AngularInertia3dError::Nan)
+            Err(AngularInertiaTensorError::Nan)
         } else {
             Ok(Self(Mat3::from_diagonal(principal_angular_inertia)))
         }
@@ -131,17 +131,17 @@ impl AngularInertiaTensor {
     ///
     /// # Errors
     ///
-    /// Returns [`Err(AngularInertia3dError)`](AngularInertia3dError) if any component
+    /// Returns [`Err(AngularInertiaTensorError)`](AngularInertiaTensorError) if any component
     /// of the principal angular inertia is negative.
     #[inline]
     pub fn try_new_with_local_frame(
         principal_angular_inertia: Vec3,
         orientation: Quat,
-    ) -> Result<Self, AngularInertia3dError> {
+    ) -> Result<Self, AngularInertiaTensorError> {
         if !principal_angular_inertia.cmpge(Vec3::ZERO).all() {
-            Err(AngularInertia3dError::Negative)
+            Err(AngularInertiaTensorError::Negative)
         } else if principal_angular_inertia.is_nan() {
-            Err(AngularInertia3dError::Nan)
+            Err(AngularInertiaTensorError::Nan)
         } else {
             Ok(Self(
                 Mat3::from_quat(orientation)
@@ -297,13 +297,13 @@ impl AngularInertiaTensor {
 
     /// Computes the angular inertia tensor shifted by the given offset, taking into account the given mass.
     #[inline]
-    pub fn shifted(self, mass: impl Into<Mass>, offset: Vec3) -> Self {
+    pub fn shifted(self, mass: f32, offset: Vec3) -> Self {
         if offset != Vec3::ZERO {
             let diagonal_element = offset.length_squared();
             let diagonal_mat = Mat3::from_diagonal(Vec3::splat(diagonal_element));
             let offset_outer_product =
                 Mat3::from_cols(offset * offset.x, offset * offset.y, offset * offset.z);
-            Self::from_mat3(self.0 + (diagonal_mat + offset_outer_product) * mass.into().value())
+            Self::from_mat3(self.0 + (diagonal_mat + offset_outer_product) * mass)
         } else {
             self
         }
@@ -325,7 +325,7 @@ impl From<AngularInertiaTensor> for Mat3 {
 }
 
 impl TryFrom<Vec3> for AngularInertiaTensor {
-    type Error = AngularInertia3dError;
+    type Error = AngularInertiaTensorError;
 
     #[inline]
     fn try_from(principal_angular_inertia: Vec3) -> Result<Self, Self::Error> {
@@ -378,38 +378,6 @@ impl DivAssign<f32> for AngularInertiaTensor {
     #[inline]
     fn div_assign(&mut self, rhs: f32) {
         self.0 /= rhs;
-    }
-}
-
-impl Mul<AngularInertiaTensor> for Mass {
-    type Output = AngularInertiaTensor;
-
-    #[inline]
-    fn mul(self, angular_inertia: AngularInertiaTensor) -> AngularInertiaTensor {
-        AngularInertiaTensor(*self * angular_inertia.0)
-    }
-}
-
-impl MulAssign<Mass> for AngularInertiaTensor {
-    #[inline]
-    fn mul_assign(&mut self, mass: Mass) {
-        self.0 *= *mass;
-    }
-}
-
-impl Div<Mass> for AngularInertiaTensor {
-    type Output = AngularInertiaTensor;
-
-    #[inline]
-    fn div(self, mass: Mass) -> AngularInertiaTensor {
-        AngularInertiaTensor(self.0 / *mass)
-    }
-}
-
-impl DivAssign<Mass> for AngularInertiaTensor {
-    #[inline]
-    fn div_assign(&mut self, mass: Mass) {
-        self.0 /= *mass;
     }
 }
 

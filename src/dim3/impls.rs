@@ -1,5 +1,3 @@
-use crate::Mass;
-
 use super::{AngularInertiaTensor, ComputeMassProperties3d, MassProperties3d};
 use bevy_math::{
     prelude::Tetrahedron,
@@ -12,8 +10,8 @@ use bevy_math::{
 
 impl ComputeMassProperties3d for Sphere {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
-        Mass::new(self.volume() * density)
+    fn mass(&self, density: f32) -> f32 {
+        self.volume() * density
     }
 
     #[inline]
@@ -34,8 +32,8 @@ impl ComputeMassProperties3d for Sphere {
 
 impl ComputeMassProperties3d for Cuboid {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
-        Mass::new(self.volume() * density)
+    fn mass(&self, density: f32) -> f32 {
+        self.volume() * density
     }
 
     #[inline]
@@ -59,8 +57,8 @@ impl ComputeMassProperties3d for Cuboid {
 
 impl ComputeMassProperties3d for Cylinder {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
-        Mass::new(self.volume() * density)
+    fn mass(&self, density: f32) -> f32 {
+        self.volume() * density
     }
 
     #[inline]
@@ -85,8 +83,8 @@ impl ComputeMassProperties3d for Cylinder {
 
 impl ComputeMassProperties3d for Capsule3d {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
-        Mass::new(self.volume() * density)
+    fn mass(&self, density: f32) -> f32 {
+        self.volume() * density
     }
 
     #[inline]
@@ -171,8 +169,8 @@ impl ComputeMassProperties3d for Capsule3d {
 
 impl ComputeMassProperties3d for Cone {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
-        Mass::new(self.volume() * density)
+    fn mass(&self, density: f32) -> f32 {
+        self.volume() * density
     }
 
     #[inline]
@@ -202,7 +200,7 @@ impl ComputeMassProperties3d for Cone {
 
 impl ComputeMassProperties3d for ConicalFrustum {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
+    fn mass(&self, density: f32) -> f32 {
         if self.radius_top == self.radius_bottom {
             Cylinder::new(self.radius_top, self.height).mass(density)
         } else {
@@ -211,7 +209,7 @@ impl ComputeMassProperties3d for ConicalFrustum {
             let volume = std::f32::consts::FRAC_PI_3
                 * self.height
                 * (radii_squared + self.radius_top * self.radius_bottom);
-            Mass::new(volume * density)
+            volume * density
         }
     }
 
@@ -395,8 +393,8 @@ impl ComputeMassProperties3d for ConicalFrustum {
 
 impl ComputeMassProperties3d for Torus {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
-        Mass::new(self.volume() * density)
+    fn mass(&self, density: f32) -> f32 {
+        self.volume() * density
     }
 
     #[inline]
@@ -424,13 +422,13 @@ impl ComputeMassProperties3d for Torus {
 
 impl ComputeMassProperties3d for Tetrahedron {
     #[inline]
-    fn mass(&self, density: f32) -> Mass {
-        Mass::new(self.volume() * density)
+    fn mass(&self, density: f32) -> f32 {
+        self.volume() * density
     }
 
     #[inline]
     fn unit_principal_angular_inertia(&self) -> Vec3 {
-        let tensor = self.angular_inertia_tensor(Mass::ONE);
+        let tensor = self.unit_angular_inertia_tensor();
         tensor.principal_angular_inertia()
     }
 
@@ -565,10 +563,10 @@ impl ComputeMassProperties3d for Tetrahedron {
         let center_of_mass = self.center_of_mass();
 
         if volume < f32::EPSILON {
-            return MassProperties3d::new(Mass::ZERO, Vec3::ZERO, center_of_mass);
+            return MassProperties3d::new(0.0, Vec3::ZERO, center_of_mass);
         }
 
-        let mass = Mass::new(volume * density);
+        let mass = volume * density;
         let tensor = self.angular_inertia_tensor(mass);
 
         MassProperties3d::new_with_angular_inertia_tensor(mass, tensor, center_of_mass)
@@ -580,8 +578,8 @@ macro_rules! impl_zero_mass_properties_3d {
         $(
             impl ComputeMassProperties3d for $shape {
                 #[inline]
-                fn mass(&self, _density: f32) -> Mass {
-                    Mass::ZERO
+                fn mass(&self, _density: f32) -> f32 {
+                    0.0
                 }
 
                 #[inline]
@@ -590,7 +588,7 @@ macro_rules! impl_zero_mass_properties_3d {
                 }
 
                 #[inline]
-                fn principal_angular_inertia(&self, _mass: impl Into<Mass>) -> Vec3 {
+                fn principal_angular_inertia(&self, _mass: f32) -> Vec3 {
                     Vec3::ZERO
                 }
 
@@ -605,7 +603,7 @@ macro_rules! impl_zero_mass_properties_3d {
                 }
 
                 #[inline]
-                fn angular_inertia_tensor(&self, _mass: impl Into<Mass>) -> AngularInertiaTensor {
+                fn angular_inertia_tensor(&self, _mass: f32) -> AngularInertiaTensor {
                     AngularInertiaTensor::ZERO
                 }
 
@@ -630,8 +628,8 @@ impl_zero_mass_properties_3d!(BoxedPolyline3d);
 
 impl<const N: usize> ComputeMassProperties3d for Polyline3d<N> {
     #[inline]
-    fn mass(&self, _density: f32) -> Mass {
-        Mass::ZERO
+    fn mass(&self, _density: f32) -> f32 {
+        0.0
     }
 
     #[inline]
@@ -640,7 +638,7 @@ impl<const N: usize> ComputeMassProperties3d for Polyline3d<N> {
     }
 
     #[inline]
-    fn principal_angular_inertia(&self, _mass: impl Into<Mass>) -> Vec3 {
+    fn principal_angular_inertia(&self, _mass: f32) -> Vec3 {
         Vec3::ZERO
     }
 
@@ -655,7 +653,7 @@ impl<const N: usize> ComputeMassProperties3d for Polyline3d<N> {
     }
 
     #[inline]
-    fn angular_inertia_tensor(&self, _mass: impl Into<Mass>) -> AngularInertiaTensor {
+    fn angular_inertia_tensor(&self, _mass: f32) -> AngularInertiaTensor {
         AngularInertiaTensor::ZERO
     }
 
@@ -699,7 +697,7 @@ mod tests {
 
                 // First, test that the individually computed properties match the full properties.
                 let mass_props = shape.mass_properties(density);
-                assert_relative_eq!(mass.value(), mass_props.mass.value());
+                assert_relative_eq!(mass, mass_props.mass);
                 assert_relative_eq!(
                     principal_angular_inertia,
                     mass_props.principal_angular_inertia
@@ -712,7 +710,7 @@ mod tests {
                 let expected =
                     MassProperties3d::from_point_cloud(&points, mass, local_inertial_frame);
 
-                assert_relative_eq!(mass.value(), expected.mass.value());
+                assert_relative_eq!(mass, expected.mass);
                 assert_relative_eq!(
                     principal_angular_inertia,
                     expected.principal_angular_inertia,

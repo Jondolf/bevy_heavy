@@ -8,7 +8,7 @@
 //! ## Example
 //!
 //! ```
-//! use bevy_heavy::{AngularInertia2d, ComputeMassProperties2d, Mass, MassProperties2d};
+//! use bevy_heavy::{ComputeMassProperties2d, MassProperties2d};
 //! use bevy_math::{primitives::Rectangle, Vec2};
 //!
 //! let rectangle = Rectangle::new(2.0, 1.0);
@@ -24,15 +24,11 @@
 //! let mass_props = rectangle.mass_properties(density);
 //!
 //! // Mass properties have several helpers.
-//! let shifted_inertia = mass_props.angular_inertia.shifted(mass, Vec2::new(-3.5, 1.0));
+//! let shifted_inertia = mass_props.shifted_angular_inertia(Vec2::new(-3.5, 1.0));
 //! let global_center_of_mass = mass_props.global_center_of_mass(Vec2::new(5.0, 7.5), 0.0);
 //!
 //! // You can also add and subtract mass properties.
-//! let mass_props_2 = MassProperties2d::new(
-//!     Mass::new(1.0),
-//!     AngularInertia2d::new(0.5),
-//!     Vec2::new(0.0, 1.0),
-//! );
+//! let mass_props_2 = MassProperties2d::new(mass, angular_inertia, Vec2::new(0.0, 1.0));
 //! let sum = mass_props + mass_props_2;
 //! approx::assert_relative_eq!(sum - mass_props_2, mass_props);
 //! ```
@@ -41,13 +37,11 @@
 
 mod dim2;
 mod dim3;
-mod mass;
 mod math_ext;
 
-pub use dim2::{AngularInertia2d, ComputeMassProperties2d, MassProperties2d};
+pub use dim2::{ComputeMassProperties2d, MassProperties2d};
 pub use dim3::{
-    AngularInertia3dError, AngularInertiaTensor, ComputeMassProperties3d, MassProperties3d,
+    AngularInertiaTensor, AngularInertiaTensorError, ComputeMassProperties3d, MassProperties3d,
     SymmetricEigen3,
 };
-pub use mass::{Mass, MassError};
 pub use math_ext::{MatExt, RecipOrZero};
