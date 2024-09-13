@@ -21,10 +21,10 @@ approx = ["dep:approx", "bevy_math/approx"]
 [dependencies]
 # Math
 approx = { version = "0.5", optional = true }
-bevy_math = { path = "../bevy/crates/bevy_math", version = "0.14", default-features = false }
+bevy_math = { version = "0.14", default-features = false }
 
 # Serialization
-bevy_reflect = { path = "../bevy/crates/bevy_reflect", version = "0.14", default-features = false, optional = true }
+bevy_reflect = { version = "0.14", default-features = false, optional = true }
 serde = { version = "1.0", default-features = false, optional = true }
 
 [dev-dependencies]
@@ -33,7 +33,7 @@ bevy_heavy = { path = ".", features = ["approx"] }
 
 # Math
 approx = "0.5"
-bevy_math = { path = "../bevy/crates/bevy_math", version = "0.14", default-features = false, features = [
+bevy_math = { version = "0.14", default-features = false, features = [
     "approx",
     "rand",
 ] }
