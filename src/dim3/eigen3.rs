@@ -79,35 +79,36 @@ impl SymmetricEigen3 {
     /// Reference: <https://en.wikipedia.org/wiki/Eigenvalue_algorithm#3%C3%973_matrices>
     pub fn eigenvalues(mat: Mat3) -> (Vec3, bool) {
         let p1 = mat.y_axis.x.powi(2) + mat.z_axis.x.powi(2) + mat.z_axis.y.powi(2);
+
         if p1 == 0.0 {
             // The matrix is diagonal.
-            (Vec3::new(mat.x_axis.x, mat.y_axis.y, mat.z_axis.z), true)
-        } else {
-            let q = (mat.x_axis.x + mat.y_axis.y + mat.z_axis.z) / 3.0;
-            let p2 = (mat.x_axis.x - q).powi(2)
-                + (mat.y_axis.y - q).powi(2)
-                + (mat.z_axis.z - q).powi(2)
-                + 2.0 * p1;
-            let p = (p2 / 6.0).sqrt();
-            let mat_b = 1.0 / p * (mat - q * Mat3::IDENTITY);
-            let r = mat_b.determinant() / 2.0;
-
-            // r should be in the [-1, 1] range for a symmetric matrix,
-            // but computation error can leave it slightly outside this range.
-            let phi = if r <= -1.0 {
-                std::f32::consts::FRAC_PI_3
-            } else if r >= 1.0 {
-                0.0
-            } else {
-                r.acos() / 3.0
-            };
-
-            // The eigenvalues satisfy eigen3 <= eigen2 <= eigen1
-            let eigen1 = q + 2.0 * p * phi.cos();
-            let eigen3 = q + 2.0 * p * (phi + 2.0 * std::f32::consts::FRAC_PI_3).cos();
-            let eigen2 = 3.0 * q - eigen1 - eigen3; // trace(mat) = eigen1 + eigen2 + eigen3
-            (Vec3::new(eigen3, eigen2, eigen1), false)
+            return (Vec3::new(mat.x_axis.x, mat.y_axis.y, mat.z_axis.z), true);
         }
+
+        let q = (mat.x_axis.x + mat.y_axis.y + mat.z_axis.z) / 3.0;
+        let p2 = (mat.x_axis.x - q).powi(2)
+            + (mat.y_axis.y - q).powi(2)
+            + (mat.z_axis.z - q).powi(2)
+            + 2.0 * p1;
+        let p = (p2 / 6.0).sqrt();
+        let mat_b = 1.0 / p * (mat - q * Mat3::IDENTITY);
+        let r = mat_b.determinant() / 2.0;
+
+        // r should be in the [-1, 1] range for a symmetric matrix,
+        // but computation error can leave it slightly outside this range.
+        let phi = if r <= -1.0 {
+            std::f32::consts::FRAC_PI_3
+        } else if r >= 1.0 {
+            0.0
+        } else {
+            r.acos() / 3.0
+        };
+
+        // The eigenvalues satisfy eigen3 <= eigen2 <= eigen1
+        let eigen1 = q + 2.0 * p * phi.cos();
+        let eigen3 = q + 2.0 * p * (phi + 2.0 * std::f32::consts::FRAC_PI_3).cos();
+        let eigen2 = 3.0 * q - eigen1 - eigen3; // trace(mat) = eigen1 + eigen2 + eigen3
+        (Vec3::new(eigen3, eigen2, eigen1), false)
     }
 
     // TODO: Fall back to QL when the eigenvalue precision is poor.
