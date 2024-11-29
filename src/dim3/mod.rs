@@ -312,6 +312,39 @@ impl std::ops::SubAssign for MassProperties3d {
     }
 }
 
+impl std::iter::Sum for MassProperties3d {
+    #[inline]
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        let mut total_mass = 0.0;
+        let mut total_angular_inertia = AngularInertiaTensor::ZERO;
+        let mut total_center_of_mass = Vec3::ZERO;
+
+        // TODO: Avoid this allocation if possible. This is currently needed because we iterate twice.
+        let mut all_properties = Vec::with_capacity(iter.size_hint().1.unwrap_or_default());
+
+        for props in iter {
+            total_mass += props.mass;
+            total_center_of_mass += props.center_of_mass * props.mass;
+            all_properties.push(props);
+        }
+
+        if total_mass > 0.0 {
+            total_center_of_mass /= total_mass;
+        }
+
+        for props in all_properties {
+            total_angular_inertia +=
+                props.shifted_angular_inertia_tensor(total_center_of_mass - props.center_of_mass);
+        }
+
+        Self::new_with_angular_inertia_tensor(
+            total_mass,
+            total_angular_inertia,
+            total_center_of_mass,
+        )
+    }
+}
+
 #[cfg(any(feature = "approx", test))]
 impl approx::AbsDiffEq for MassProperties3d {
     type Epsilon = f32;
