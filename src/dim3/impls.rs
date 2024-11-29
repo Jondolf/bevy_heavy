@@ -674,7 +674,7 @@ mod tests {
     use approx::assert_relative_eq;
     use bevy_math::{
         bounding::{Bounded3d, BoundingVolume},
-        ShapeSample, Vec3Swizzles,
+        Isometry3d, ShapeSample, Vec3Swizzles,
     };
     use rand::SeedableRng;
 
@@ -746,7 +746,7 @@ mod tests {
         };
     }
 
-    fn sample_shape<S: ShapeSample>(shape: &S) -> Vec<S::Output> {
+    fn sample_shape<S: ShapeSample<Output = Vec3>>(shape: &S) -> Vec<S::Output> {
         let mut rng = rand_chacha::ChaCha8Rng::from_seed(Default::default());
         (0..2_000_000)
             .map(|_| shape.sample_interior(&mut rng))
@@ -759,7 +759,7 @@ mod tests {
     ) -> Vec<Vec3> {
         let mut rng = rand_chacha::ChaCha8Rng::from_seed(Default::default());
         let mut points = Vec::new();
-        let aabb = shape.aabb_3d(Vec3::ZERO, Quat::IDENTITY);
+        let aabb = shape.aabb_3d(Isometry3d::IDENTITY);
         let aabb_center: Vec3 = aabb.center().into();
         let cuboid = Cuboid {
             half_size: aabb.half_size().into(),
