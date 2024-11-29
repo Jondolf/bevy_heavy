@@ -1,11 +1,12 @@
 use super::{ComputeMassProperties2d, MassProperties2d};
 use bevy_math::{
+    ops,
     primitives::{
         Annulus, Arc2d, BoxedPolygon, BoxedPolyline2d, Capsule2d, Circle, CircularSector,
         CircularSegment, Ellipse, Line2d, Measured2d, Plane2d, Polygon, Polyline2d, Rectangle,
         RegularPolygon, Rhombus, Segment2d, Triangle2d,
     },
-    Vec2,
+    FloatPow, Vec2,
 };
 
 impl ComputeMassProperties2d for Circle {
@@ -16,7 +17,7 @@ impl ComputeMassProperties2d for Circle {
 
     #[inline]
     fn unit_angular_inertia(&self) -> f32 {
-        self.radius.powi(2) / 2.0
+        self.radius.squared() / 2.0
     }
 
     #[inline]
@@ -33,13 +34,13 @@ impl ComputeMassProperties2d for CircularSector {
 
     #[inline]
     fn unit_angular_inertia(&self) -> f32 {
-        0.5 * self.radius().powi(4) * self.angle()
+        0.5 * ops::powf(self.radius(), 4.0) * self.angle()
     }
 
     #[inline]
     fn center_of_mass(&self) -> Vec2 {
         let angle = self.angle();
-        let y = 2.0 * self.radius() * angle.sin() / (3.0 * angle);
+        let y = 2.0 * self.radius() * ops::sin(angle) / (3.0 * angle);
         Vec2::new(0.0, y)
     }
 }
@@ -53,14 +54,14 @@ impl ComputeMassProperties2d for CircularSegment {
     #[inline]
     fn unit_angular_inertia(&self) -> f32 {
         let angle = self.angle();
-        let (sin, cos) = angle.sin_cos();
-        self.radius().powi(4) / 4.0 * (angle - sin + 2.0 / 3.0 * sin * (1.0 - cos) / 2.0)
+        let (sin, cos) = ops::sin_cos(angle);
+        ops::powf(self.radius(), 4.0) / 4.0 * (angle - sin + 2.0 / 3.0 * sin * (1.0 - cos) / 2.0)
     }
 
     #[inline]
     fn center_of_mass(&self) -> Vec2 {
-        let y = self.radius() * self.half_angle().sin().powi(3)
-            / (6.0 * self.half_angle() - self.angle().sin());
+        let y = self.radius() * ops::sin(self.half_angle()).cubed()
+            / (6.0 * self.half_angle() - ops::sin(self.angle()));
         Vec2::new(0.0, y)
     }
 }
@@ -90,7 +91,7 @@ impl ComputeMassProperties2d for Annulus {
 
     #[inline]
     fn unit_angular_inertia(&self) -> f32 {
-        0.5 * (self.outer_circle.radius.powi(2) + self.inner_circle.radius.powi(2))
+        0.5 * (self.outer_circle.radius.squared() + self.inner_circle.radius.squared())
     }
 
     #[inline]
@@ -180,7 +181,7 @@ impl ComputeMassProperties2d for RegularPolygon {
     #[inline]
     fn unit_angular_inertia(&self) -> f32 {
         let half_external_angle = std::f32::consts::PI / self.sides as f32;
-        self.circumradius().powi(2) / 6.0 * (1.0 + 2.0 * half_external_angle.cos().powi(2))
+        self.circumradius().squared() / 6.0 * (1.0 + 2.0 * ops::cos(half_external_angle).squared())
     }
 
     #[inline]
@@ -222,7 +223,7 @@ impl ComputeMassProperties2d for Capsule2d {
         let mut capsule_inertia = rectangle_inertia + circle_inertia;
 
         // Compensate for the hemicircles being away from the rotation axis using the parallel axis theorem.
-        capsule_inertia += (rectangle_height.powi(2) * 0.25
+        capsule_inertia += (rectangle_height.squared() * 0.25
             + rectangle_height * self.radius * 3.0 / 8.0)
             * circle_mass;
 
@@ -259,7 +260,7 @@ impl ComputeMassProperties2d for Capsule2d {
         let mut capsule_inertia = rectangle_inertia + circle_inertia;
 
         // Compensate for the hemicircles being away from the rotation axis using the parallel axis theorem.
-        capsule_inertia += (rectangle_height.powi(2) * 0.25
+        capsule_inertia += (rectangle_height.squared() * 0.25
             + rectangle_height * self.radius * 3.0 / 8.0)
             * circle_mass;
 

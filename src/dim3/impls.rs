@@ -5,7 +5,7 @@ use bevy_math::{
         BoxedPolyline3d, Capsule3d, Cone, ConicalFrustum, Cuboid, Cylinder, Line3d, Measured3d,
         Plane3d, Polyline3d, Segment3d, Sphere, Torus,
     },
-    Mat3, Quat, Vec3,
+    FloatPow, Mat3, Quat, Vec3,
 };
 
 impl ComputeMassProperties3d for Sphere {
@@ -16,7 +16,7 @@ impl ComputeMassProperties3d for Sphere {
 
     #[inline]
     fn unit_principal_angular_inertia(&self) -> Vec3 {
-        Vec3::splat(0.4 * self.radius.powi(2))
+        Vec3::splat(0.4 * self.radius.squared())
     }
 
     #[inline]
@@ -38,9 +38,9 @@ impl ComputeMassProperties3d for Cuboid {
 
     #[inline]
     fn unit_principal_angular_inertia(&self) -> Vec3 {
-        let ix = self.half_size.x.powi(2) / 3.0;
-        let iy = self.half_size.y.powi(2) / 3.0;
-        let iz = self.half_size.z.powi(2) / 3.0;
+        let ix = self.half_size.x.squared() / 3.0;
+        let iy = self.half_size.y.squared() / 3.0;
+        let iz = self.half_size.z.squared() / 3.0;
         Vec3::new(iy + iz, ix + iz, ix + iy)
     }
 
@@ -63,8 +63,8 @@ impl ComputeMassProperties3d for Cylinder {
 
     #[inline]
     fn unit_principal_angular_inertia(&self) -> Vec3 {
-        let radius_squared = self.radius.powi(2);
-        let height_squared = self.half_height.powi(2) * 4.0;
+        let radius_squared = self.radius.squared();
+        let height_squared = self.half_height.squared() * 4.0;
         let principal = radius_squared / 2.0;
         let off_principal = (radius_squared * 3.0 + height_squared) / 12.0;
         Vec3::new(off_principal, principal, off_principal)
@@ -114,7 +114,7 @@ impl ComputeMassProperties3d for Capsule3d {
         let mut capsule_inertia = cylinder_inertia + sphere_inertia;
 
         // Compensate for the hemispheres being away from the rotation axis using the parallel axis theorem.
-        let extra = (cylinder_length.powi(2) * 0.25 + cylinder_length * self.radius * 3.0 / 8.0)
+        let extra = (cylinder_length.squared() * 0.25 + cylinder_length * self.radius * 3.0 / 8.0)
             * sphere_mass;
         capsule_inertia.x += extra;
         capsule_inertia.z += extra;
@@ -158,7 +158,7 @@ impl ComputeMassProperties3d for Capsule3d {
         let mut capsule_inertia = cylinder_inertia + sphere_inertia;
 
         // Compensate for the hemispheres being away from the rotation axis using the parallel axis theorem.
-        let extra = (cylinder_length.powi(2) * 0.25 + cylinder_length * self.radius * 3.0 / 8.0)
+        let extra = (cylinder_length.squared() * 0.25 + cylinder_length * self.radius * 3.0 / 8.0)
             * sphere_mass;
         capsule_inertia.x += extra;
         capsule_inertia.z += extra;
@@ -175,8 +175,8 @@ impl ComputeMassProperties3d for Cone {
 
     #[inline]
     fn unit_principal_angular_inertia(&self) -> Vec3 {
-        let radius_squared = self.radius.powi(2);
-        let height_squared = self.height.powi(2);
+        let radius_squared = self.radius.squared();
+        let height_squared = self.height.squared();
 
         // About the Y axis
         let principal = 3.0 / 10.0 * radius_squared;
@@ -205,7 +205,7 @@ impl ComputeMassProperties3d for ConicalFrustum {
             Cylinder::new(self.radius_top, self.height).mass(density)
         } else {
             // https://mathworld.wolfram.com/ConicalFrustum.html
-            let radii_squared = self.radius_top.powi(2) + self.radius_bottom.powi(2);
+            let radii_squared = self.radius_top.squared() + self.radius_bottom.squared();
             let volume = std::f32::consts::FRAC_PI_3
                 * self.height
                 * (radii_squared + self.radius_top * self.radius_bottom);
@@ -298,8 +298,8 @@ impl ComputeMassProperties3d for ConicalFrustum {
                 (self.radius_bottom, self.radius_top)
             };
 
-            let min_radius_squared = min_radius.powi(2);
-            let max_radius_squared = max_radius.powi(2);
+            let min_radius_squared = min_radius.squared();
+            let max_radius_squared = max_radius.squared();
             let radii_product = self.radius_top * self.radius_bottom;
 
             let y = self.height
@@ -375,8 +375,8 @@ impl ComputeMassProperties3d for ConicalFrustum {
             let principal_angular_inertia =
                 mass * (large_cone_angular_inertia.x - small_cone_angular_inertia);
 
-            let min_radius_squared = min_radius.powi(2);
-            let max_radius_squared = max_radius.powi(2);
+            let min_radius_squared = min_radius.squared();
+            let max_radius_squared = max_radius.squared();
             let radii_product = self.radius_top * self.radius_bottom;
 
             // Compute the center of mass.
@@ -401,8 +401,8 @@ impl ComputeMassProperties3d for Torus {
     fn unit_principal_angular_inertia(&self) -> Vec3 {
         // Reference: https://en.wikipedia.org/wiki/List_of_moments_of_inertia
 
-        let major_radius_squared = self.major_radius.powi(2);
-        let minor_radius_squared = self.minor_radius.powi(2);
+        let major_radius_squared = self.major_radius.squared();
+        let minor_radius_squared = self.minor_radius.squared();
 
         let principal = 0.25 * (4.0 * major_radius_squared + 3.0 * minor_radius_squared);
         let off_principal = 1.0 / 8.0 * (4.0 * major_radius_squared + 5.0 * minor_radius_squared);
@@ -834,7 +834,7 @@ mod tests {
         //                  = pb_dot_ba * cone.radius / (cone.height * cone.height);
         // let radius = cone.radius + delta_radius;
 
-        let delta_radius = pb_dot_ba * cone.radius / cone.height.powi(2);
+        let delta_radius = pb_dot_ba * cone.radius / cone.height.squared();
         let radius = cone.radius + delta_radius;
 
         // The squared orthogonal distance from the cone axis
@@ -869,7 +869,7 @@ mod tests {
         // let radius = frustum.radius_bottom + delta_radius;
 
         let delta_radius =
-            pb_dot_ba * (frustum.radius_bottom - frustum.radius_top) / frustum.height.powi(2);
+            pb_dot_ba * (frustum.radius_bottom - frustum.radius_top) / frustum.height.squared();
         let radius = frustum.radius_bottom + delta_radius;
 
         // The squared orthogonal distance from the frustum axis
@@ -881,6 +881,7 @@ mod tests {
     // TODO: This should be removed once Bevy either has this built-in or it has uniform sampling for tori.
     fn torus_contains_point(torus: &Torus, point: Vec3) -> bool {
         let minor_radius_squared = torus.minor_radius * torus.minor_radius;
-        (torus.major_radius - point.xz().length()).powi(2) + point.y.powi(2) < minor_radius_squared
+        (torus.major_radius - point.xz().length()).squared() + point.y.squared()
+            < minor_radius_squared
     }
 }

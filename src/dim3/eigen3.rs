@@ -2,7 +2,7 @@
 // "A Robust Eigensolver for 3 x 3 Symmetric Matrices" by David Eberly, Geometric Tools, Redmond WA 98052.
 // https://www.geometrictools.com/Documentation/RobustEigenSymmetric3x3.pdf
 
-use bevy_math::{Mat3, Vec3, Vec3Swizzles};
+use bevy_math::{ops, FloatPow, Mat3, Vec3, Vec3Swizzles};
 
 /// The eigen decomposition of a symmetric 3x3 matrix.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -78,7 +78,7 @@ impl SymmetricEigen3 {
     ///
     /// Reference: <https://en.wikipedia.org/wiki/Eigenvalue_algorithm#3%C3%973_matrices>
     pub fn eigenvalues(mat: Mat3) -> (Vec3, bool) {
-        let p1 = mat.y_axis.x.powi(2) + mat.z_axis.x.powi(2) + mat.z_axis.y.powi(2);
+        let p1 = mat.y_axis.x.squared() + mat.z_axis.x.squared() + mat.z_axis.y.squared();
 
         if p1 == 0.0 {
             // The matrix is diagonal.
@@ -86,9 +86,9 @@ impl SymmetricEigen3 {
         }
 
         let q = (mat.x_axis.x + mat.y_axis.y + mat.z_axis.z) / 3.0;
-        let p2 = (mat.x_axis.x - q).powi(2)
-            + (mat.y_axis.y - q).powi(2)
-            + (mat.z_axis.z - q).powi(2)
+        let p2 = (mat.x_axis.x - q).squared()
+            + (mat.y_axis.y - q).squared()
+            + (mat.z_axis.z - q).squared()
             + 2.0 * p1;
         let p = (p2 / 6.0).sqrt();
         let mat_b = 1.0 / p * (mat - q * Mat3::IDENTITY);
@@ -101,12 +101,12 @@ impl SymmetricEigen3 {
         } else if r >= 1.0 {
             0.0
         } else {
-            r.acos() / 3.0
+            ops::acos(r) / 3.0
         };
 
         // The eigenvalues satisfy eigen3 <= eigen2 <= eigen1
-        let eigen1 = q + 2.0 * p * phi.cos();
-        let eigen3 = q + 2.0 * p * (phi + 2.0 * std::f32::consts::FRAC_PI_3).cos();
+        let eigen1 = q + 2.0 * p * ops::cos(phi);
+        let eigen3 = q + 2.0 * p * ops::cos(phi + 2.0 * std::f32::consts::FRAC_PI_3);
         let eigen2 = 3.0 * q - eigen1 - eigen3; // trace(mat) = eigen1 + eigen2 + eigen3
         (Vec3::new(eigen3, eigen2, eigen1), false)
     }
