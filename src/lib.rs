@@ -35,11 +35,15 @@
 
 #![warn(missing_docs)]
 
+#[cfg(feature = "2d")]
 mod dim2;
+#[cfg(feature = "3d")]
 mod dim3;
 mod math_ext;
 
+#[cfg(feature = "2d")]
 pub use dim2::{ComputeMassProperties2d, MassProperties2d};
+#[cfg(feature = "3d")]
 pub use dim3::{
     AngularInertiaTensor, AngularInertiaTensorError, ComputeMassProperties3d, MassProperties3d,
     SymmetricEigen3,

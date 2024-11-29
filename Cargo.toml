@@ -7,7 +7,13 @@ authors = ["Joona Aalto <jondolf.dev@gmail.com>"]
 description = "Mass property computation for Bevy's geometric primitives."
 
 [features]
-default = ["bevy_reflect"]
+default = ["2d", "3d", "bevy_reflect"]
+
+# Enable 2D functionality.
+2d = []
+
+# Enable 3D functionality.
+3d = []
 
 # Enable reflection using `bevy_reflect`.
 bevy_reflect = ["dep:bevy_reflect", "bevy_math/bevy_reflect"]
