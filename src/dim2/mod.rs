@@ -142,12 +142,15 @@ impl MassProperties2d {
         }
     }
 
-    /// Sets the mass to the given `new_mass`. This also affects the angular inertia.
+    /// Sets the mass to the given `new_mass`.
+    ///
+    /// If `update_angular_inertia` is `true`, the angular inertia will be scaled accordingly.
     #[inline]
-    pub fn set_mass(&mut self, new_mass: f32) {
-        // Adjust angular inertia based on new mass.
-        self.angular_inertia /= self.mass;
-        self.angular_inertia *= new_mass;
+    pub fn set_mass(&mut self, new_mass: f32, update_angular_inertia: bool) {
+        if update_angular_inertia {
+            // Adjust angular inertia to match the new mass.
+            self.angular_inertia *= new_mass * self.mass.recip_or_zero();
+        }
         self.mass = new_mass;
     }
 }
