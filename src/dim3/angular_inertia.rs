@@ -8,7 +8,7 @@ use bevy_reflect::{ReflectDeserialize, ReflectSerialize};
 use super::SymmetricEigen3;
 
 // TODO: Add errors for asymmetric and non-positive definite matrices.
-/// An error returned for an invalid angular inertia in 3D.
+/// An error returned for an invalid [`AngularInertiaTensor`] in 3D.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AngularInertiaTensorError {
     /// The mass is negative.
@@ -19,16 +19,16 @@ pub enum AngularInertiaTensorError {
 
 // TODO: The matrix should be symmetric and positive definite.
 //       We could add a custom `SymmetricMat3` type to enforce symmetricity and reduce memory usage.
-/// The 3x3 angular inertia tensor of a 3D object.
+/// The 3x3 [angular inertia] tensor of a 3D object.
 ///
 /// This represents the torque needed for a desired angular acceleration
 /// about the coordinate axes defined by the local inertial frame.
 ///
-/// The principal angular inertia and local inertial frame can be extracted with the following methods:
+/// The principal angular inertia and local inertial frame can be extracted with the
+/// [`principal_angular_inertia_with_local_frame`] method.
 ///
-/// - [`principal_angular_inertia_with_local_frame`](AngularInertiaTensor::principal_angular_inertia_with_local_frame)
-/// - [`principal_angular_inertia`](AngularInertiaTensor::principal_angular_inertia)
-/// - [`local_frame`](AngularInertiaTensor::local_frame)
+/// [angular inertia]: crate#angular-inertia
+/// [`principal_angular_inertia_with_local_frame`]: AngularInertiaTensor::principal_angular_inertia_with_local_frame
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 #[cfg_attr(feature = "bevy_reflect", derive(bevy_reflect::Reflect))]
 #[cfg_attr(feature = "bevy_reflect", reflect(Debug, PartialEq))]
@@ -241,51 +241,6 @@ impl AngularInertiaTensor {
         let principal_angular_inertia = eigen.eigenvalues.max(Vec3::ZERO);
 
         (principal_angular_inertia, local_inertial_frame)
-    }
-
-    /// Computes the principal angular inertia.
-    ///
-    /// This represents the torque needed for a desired angular acceleration
-    /// about the local coordinate axes defined by the local inertial frame.
-    ///
-    /// To compute the local inertial frame, use [`AngularInertiaTensor::local_frame`].
-    /// Note that if both the principal angular inertia and the local inertial frame are needed,
-    /// it is more efficient to use [`AngularInertiaTensor::principal_angular_inertia_with_local_frame`].
-    #[inline]
-    pub fn principal_angular_inertia(&self) -> Vec3 {
-        let mut eigen = SymmetricEigen3::new(self.0).reverse();
-
-        if eigen.eigenvectors.determinant() < 0.0 {
-            std::mem::swap(&mut eigen.eigenvalues.y, &mut eigen.eigenvalues.z);
-        }
-
-        // Clamp eigenvalues to be non-negative.
-        eigen.eigenvalues.max(Vec3::ZERO)
-    }
-
-    /// Computes the orientation of the inertial frame used by the principal axes of inertia in local space.
-    ///
-    /// For most primitive shapes, this returns an identity quaternion, which means that the principal axes
-    /// are aligned with the object's XYZ axes.
-    ///
-    /// To compute the principal angular inertia, use [`AngularInertiaTensor::principal_angular_inertia`].
-    /// Note that if both the principal angular inertia and the local inertial frame are needed,
-    /// it is more efficient to use [`AngularInertiaTensor::principal_angular_inertia_with_local_frame`].
-    #[inline]
-    pub fn local_frame(&self) -> Quat {
-        let mut eigenvectors = SymmetricEigen3::new(self.0).reverse().eigenvectors;
-
-        if eigenvectors.determinant() < 0.0 {
-            std::mem::swap(&mut eigenvectors.y_axis, &mut eigenvectors.z_axis);
-        }
-
-        let mut local_inertial_frame = Quat::from_mat3(&eigenvectors).normalize();
-
-        if !local_inertial_frame.is_finite() {
-            local_inertial_frame = Quat::IDENTITY;
-        }
-
-        local_inertial_frame
     }
 
     /// Computes the angular inertia tensor with the given rotation.

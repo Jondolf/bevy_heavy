@@ -429,13 +429,13 @@ impl ComputeMassProperties3d for Tetrahedron {
     #[inline]
     fn unit_principal_angular_inertia(&self) -> Vec3 {
         let tensor = self.unit_angular_inertia_tensor();
-        tensor.principal_angular_inertia()
+        tensor.principal_angular_inertia_with_local_frame().0
     }
 
     #[inline]
     fn local_inertial_frame(&self) -> Quat {
         let tensor = self.unit_angular_inertia_tensor();
-        tensor.local_frame()
+        tensor.principal_angular_inertia_with_local_frame().1
     }
 
     #[inline]

@@ -1,4 +1,4 @@
-use bevy_math::{DVec3, Mat3, Quat, Vec3};
+use bevy_math::{DVec3, Isometry3d, Mat3, Quat, Vec3};
 
 mod angular_inertia;
 pub use angular_inertia::{AngularInertiaTensor, AngularInertiaTensorError};
@@ -12,31 +12,43 @@ pub use eigen3::SymmetricEigen3;
 use crate::RecipOrZero;
 
 /// A trait for computing [`MassProperties3d`] for 3D objects.
+///
+/// For the 2D equivalent, see [`ComputeMassProperties2d`](crate::ComputeMassProperties2d).
 pub trait ComputeMassProperties3d {
-    /// Computes the mass of the object with a given `density`.
+    /// Computes the [mass] of the object with a given `density`.
+    ///
+    /// [mass]: crate#mass
     fn mass(&self, density: f32) -> f32;
 
-    /// Computes the principal angular inertia corresponding to a unit mass.
+    /// Computes the principal [angular inertia] corresponding to a mass of `1.0`.
+    ///
+    /// [angular inertia]: crate#angular-inertia
     #[doc(alias = "unit_principal_moment_of_inertia")]
     fn unit_principal_angular_inertia(&self) -> Vec3;
 
-    /// Computes the principal angular inertia corresponding to the given `mass`.
+    /// Computes the principal [angular inertia] corresponding to the given `mass`.
+    ///
+    /// Equivalent to `mass * shape.unit_principal_angular_inertia()`.
+    ///
+    /// [angular inertia]: crate#angular-inertia
     #[inline]
     #[doc(alias = "principal_moment_of_inertia")]
     fn principal_angular_inertia(&self, mass: f32) -> Vec3 {
         mass * self.unit_principal_angular_inertia()
     }
 
-    /// Computes the orientation of the inertial frame used by the principal axes of inertia in local space.
+    /// Computes the orientation of the inertial frame used by the principal axes of [inertia] in local space.
     ///
     /// For most primitive shapes, this returns an identity quaternion, which means that the principal axes
     /// are aligned with the object's XYZ axes.
+    ///
+    /// [inertia]: crate#angular-inertia
     #[inline]
     fn local_inertial_frame(&self) -> Quat {
         Quat::IDENTITY
     }
 
-    /// Computes the 3x3 [`AngularInertiaTensor`] corresponding to a unit mass.
+    /// Computes the 3x3 [`AngularInertiaTensor`] corresponding to a mass of `1.0`.
     #[inline]
     fn unit_angular_inertia_tensor(&self) -> AngularInertiaTensor {
         AngularInertiaTensor::new_with_local_frame(
@@ -51,7 +63,9 @@ pub trait ComputeMassProperties3d {
         mass * self.unit_angular_inertia_tensor()
     }
 
-    /// Computes the local center of mass.
+    /// Computes the local [center of mass] relative to the object's origin.
+    ///
+    /// [center of mass]: crate#center-of-mass
     fn center_of_mass(&self) -> Vec3;
 
     /// Computes the [`MassProperties3d`] with a given `density`.
@@ -67,20 +81,28 @@ pub trait ComputeMassProperties3d {
     }
 }
 
-/// The mass, [angular inertia], and local center of mass of an object in 3D space.
+/// The [mass], [angular inertia], and local [center of mass] of an object in 3D space.
 ///
-/// [angular inertia]: AngularInertiaTensor
+/// [mass]: crate#mass
+/// [angular inertia]: crate#angular-inertia
+/// [center of mass]: crate#center-of-mass
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "bevy_reflect", derive(bevy_reflect::Reflect))]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct MassProperties3d {
-    /// The mass.
+    /// The [mass].
+    ///
+    /// [mass]: crate#mass
     pub mass: f32,
-    /// The angular inertia along the principal axes.
+    /// The [angular inertia] along the principal axes defined by the local inertial frame.
+    ///
+    /// [angular inertia]: crate#angular-inertia
     pub principal_angular_inertia: Vec3,
     /// The orientation of the local inertial frame, defining the principal axes.
     pub local_inertial_frame: Quat,
-    /// The local center of mass.
+    /// The local [center of mass] relative to the object's origin.
+    ///
+    /// [center of mass]: crate#center-of-mass
     pub center_of_mass: Vec3,
 }
 
@@ -179,10 +201,13 @@ impl MassProperties3d {
         )
     }
 
-    /// Returns the center of mass transformed into global space using the given translation and rotation.
+    /// Returns the center of mass transformed into global space using the given [isometry].
+    ///
+    /// [isometry]: Isometry3d
     #[inline]
-    pub fn global_center_of_mass(&self, translation: Vec3, rotation: Quat) -> Vec3 {
-        translation + rotation * self.center_of_mass
+    pub fn global_center_of_mass(&self, isometry: impl Into<Isometry3d>) -> Vec3 {
+        let isometry: Isometry3d = isometry.into();
+        isometry.transform_point(self.center_of_mass).into()
     }
 
     /// Computes the principal angular inertia corresponding to a mass of `1.0`.
@@ -229,18 +254,34 @@ impl MassProperties3d {
         AngularInertiaTensor::from_mat3(lhs * rhs)
     }
 
-    /// Returns the mass properties transformed by the given translation and rotation.
+    /// Returns the mass properties transformed by the given [isometry].
+    ///
+    /// [isometry]: Isometry3d
     #[inline]
-    pub fn transformed_by(mut self, translation: Vec3, rotation: Quat) -> Self {
-        self.transform_by(translation, rotation);
+    pub fn transformed_by(mut self, isometry: impl Into<Isometry3d>) -> Self {
+        self.transform_by(isometry);
         self
     }
 
-    /// Transforms the mass properties by the given translation and rotation.
+    /// Transforms the mass properties by the given [isometry].
+    ///
+    /// [isometry]: Isometry3d
     #[inline]
-    pub fn transform_by(&mut self, translation: Vec3, rotation: Quat) {
-        self.center_of_mass = self.global_center_of_mass(translation, rotation);
-        self.local_inertial_frame = rotation * self.local_inertial_frame;
+    pub fn transform_by(&mut self, isometry: impl Into<Isometry3d>) {
+        let isometry: Isometry3d = isometry.into();
+        self.center_of_mass = self.global_center_of_mass(isometry);
+        self.local_inertial_frame = isometry.rotation * self.local_inertial_frame;
+    }
+
+    /// Returns the mass propeorties with the inverse of mass and principal angular inertia.
+    #[inline]
+    pub fn inverse(&self) -> Self {
+        Self {
+            mass: self.mass.recip_or_zero(),
+            principal_angular_inertia: self.principal_angular_inertia.recip_or_zero(),
+            local_inertial_frame: self.local_inertial_frame,
+            center_of_mass: self.center_of_mass,
+        }
     }
 
     /// Sets the mass to the given `new_mass`.
@@ -429,3 +470,5 @@ impl approx::UlpsEq for MassProperties3d {
                 .ulps_eq(&other.center_of_mass, epsilon, max_ulps)
     }
 }
+
+// TODO: Tests

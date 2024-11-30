@@ -1,4 +1,4 @@
-use bevy_math::{DVec2, Rot2, Vec2};
+use bevy_math::{DVec2, Isometry2d, Vec2};
 
 use crate::RecipOrZero;
 
@@ -6,24 +6,34 @@ use crate::RecipOrZero;
 mod impls;
 
 /// A trait for computing [`MassProperties2d`] for 2D objects.
+///
+/// For the 3D equivalent, see [`ComputeMassProperties3d`](crate::ComputeMassProperties3d).
 pub trait ComputeMassProperties2d {
-    /// Computes the mass of the object with a given `density`.
+    /// Computes the [mass] of the object with a given `density`.
+    ///
+    /// [mass]: crate#mass
     fn mass(&self, density: f32) -> f32;
 
-    /// Computes the angular inertia corresponding to a unit mass.
+    /// Computes the [angular inertia] corresponding to a mass of `1.0`.
+    ///
+    /// [angular inertia]: crate#angular-inertia
     #[doc(alias = "unit_moment_of_inertia")]
     fn unit_angular_inertia(&self) -> f32;
 
-    /// Computes the angular inertia corresponding to the given `mass`.
+    /// Computes the [angular inertia] corresponding to the given `mass`.
     ///
     /// Equivalent to `mass * shape.unit_angular_inertia()`.
+    ///
+    /// [angular inertia]: crate#angular-inertia
     #[inline]
     #[doc(alias = "moment_of_inertia")]
     fn angular_inertia(&self, mass: f32) -> f32 {
         mass * self.unit_angular_inertia()
     }
 
-    /// Computes the local center of mass.
+    /// Computes the local [center of mass] relative to the object's origin.
+    ///
+    /// [center of mass]: crate#center-of-mass
     fn center_of_mass(&self) -> Vec2;
 
     /// Computes the [`MassProperties2d`] with a given `density`.
@@ -34,16 +44,26 @@ pub trait ComputeMassProperties2d {
     }
 }
 
-/// The mass, angular inertia, and local center of mass of an object in 2D space.
+/// The [mass], [angular inertia], and local [center of mass] of an object in 2D space.
+///
+/// [mass]: crate#mass
+/// [angular inertia]: crate#angular-inertia
+/// [center of mass]: crate#center-of-mass
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "bevy_reflect", derive(bevy_reflect::Reflect))]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct MassProperties2d {
-    /// The mass.
+    /// The [mass].
+    ///
+    /// [mass]: crate#mass
     pub mass: f32,
     /// The angular inertia along the principal axis.
+    ///
+    /// [angular inertia]: crate#angular-inertia
     pub angular_inertia: f32,
-    /// The local center of mass.
+    /// The local [center of mass] relative to the object's origin.
+    ///
+    /// [center of mass]: crate#center-of-mass
     pub center_of_mass: Vec2,
 }
 
@@ -94,10 +114,13 @@ impl MassProperties2d {
         Self::new(mass, mass * unit_angular_inertia, center_of_mass)
     }
 
-    /// Returns the center of mass transformed into global space using the given translation and rotation.
+    /// Returns the center of mass transformed into global space using the given [isometry].
+    ///
+    /// [isometry]: Isometry2d
     #[inline]
-    pub fn global_center_of_mass(&self, translation: Vec2, rotation: impl Into<Rot2>) -> Vec2 {
-        translation + rotation.into() * self.center_of_mass
+    pub fn global_center_of_mass(&self, isometry: impl Into<Isometry2d>) -> Vec2 {
+        let isometry: Isometry2d = isometry.into();
+        isometry.transform_point(self.center_of_mass)
     }
 
     /// Computes the angular inertia corresponding to a mass of `1.0`.
@@ -116,24 +139,25 @@ impl MassProperties2d {
         self.angular_inertia + offset.length_squared() * self.mass
     }
 
-    /// Returns the mass properties transformed by the given translation and rotation.
+    /// Returns the mass properties transformed by the given [isometry].
     ///
-    /// In 2D, this only transforms the center of mass.
+    /// [isometry]: Isometry2d
     #[inline]
-    pub fn transformed_by(mut self, translation: Vec2, rotation: impl Into<Rot2>) -> Self {
-        self.transform_by(translation, rotation);
+    pub fn transformed_by(mut self, isometry: impl Into<Isometry2d>) -> Self {
+        self.transform_by(isometry);
         self
     }
 
-    /// Transforms the mass properties by the given translation and rotation.
+    /// Transforms the mass properties by the given [isometry].
     ///
-    /// In 2D, this only transforms the center of mass.
+    /// [isometry]: Isometry2d
     #[inline]
-    pub fn transform_by(&mut self, translation: Vec2, rotation: impl Into<Rot2>) {
-        self.center_of_mass = self.global_center_of_mass(translation, rotation);
+    pub fn transform_by(&mut self, isometry: impl Into<Isometry2d>) {
+        self.center_of_mass = self.global_center_of_mass(isometry);
     }
 
     /// Returns the mass propeorties with the inverse of mass and angular inertia.
+    #[inline]
     pub fn inverse(&self) -> Self {
         Self {
             mass: self.mass.recip_or_zero(),
@@ -317,3 +341,5 @@ impl approx::UlpsEq for MassProperties2d {
                 .ulps_eq(&other.center_of_mass, epsilon, max_ulps)
     }
 }
+
+// TODO: Tests

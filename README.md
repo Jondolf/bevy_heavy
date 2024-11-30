@@ -17,37 +17,47 @@ for things like physics simulations.
 - Eigensolver for symmetric 3x3 matrices
 - Support for `bevy_reflect` and `serde` through the `bevy_reflect` and `serialize` feature flags
 
-## Example
+## Usage
+
+Mass properties can be computed individually for shapes using the `mass`, `angular_inertia`,
+and `center_of_mass` methods:
 
 ```rust
 use bevy_heavy::{ComputeMassProperties2d, MassProperties2d};
-use bevy_math::primitives::Rectangle;
+use bevy_math::{primitives::Rectangle, Vec2};
 
 let rectangle = Rectangle::new(2.0, 1.0);
 let density = 2.0;
 
-// You can compute mass properties individually.
 let mass = rectangle.mass(density);
 let angular_inertia = rectangle.angular_inertia(mass);
 let center_of_mass = rectangle.center_of_mass();
+```
 
-// You can also compute all mass properties at once, returning `MassProperties2d`.
-// This can be more efficient when more than one property is needed.
+You can also compute all mass properties at once, returning `MassProperties2d` for 2D shapes,
+or `MassProperties3d` for 3D shapes. This can be more efficient when more than one property is needed.
+
+```rust
 let mass_props = rectangle.mass_properties(density);
+```
 
-// `MassProperties2d` has several helpers.
+The mass property types have several helper methods for various transformations and operations:
+
+```rust
 let shifted_inertia = mass_props.shifted_angular_inertia(Vec2::new(-3.5, 1.0));
 let global_center_of_mass = mass_props.global_center_of_mass(Vec2::new(5.0, 7.5));
-
-// You can also add and subtract mass properties.
-let mass_props_2 = MassProperties2d::new(
-    Mass::new(1.0),
-    AngularInertia2d::new(0.5),
-    Vec2::new(0.0, 1.0),
-);
-let sum = mass_props + mass_props_2;
-assert_eq!(sum - mass_props_2, mass_props);
 ```
+
+You can also add and subtract mass properties:
+
+```rust
+let mass_props_2 = MassProperties2d::new(mass, angular_inertia, Vec2::new(0.0, 1.0));
+let sum = mass_props + mass_props_2;
+approx::assert_relative_eq!(sum - mass_props_2, mass_props);
+```
+
+To support mass property computation for custom shapes, implement `ComputeMassProperties2d`
+or `ComputeMassProperties3d` for them.
 
 ## License
 
