@@ -2,6 +2,8 @@ use std::ops::*;
 
 use crate::MatExt;
 use bevy_math::{Mat3, Quat, Vec3};
+#[cfg(all(feature = "bevy_reflect", feature = "serialize"))]
+use bevy_reflect::{ReflectDeserialize, ReflectSerialize};
 
 use super::SymmetricEigen3;
 
