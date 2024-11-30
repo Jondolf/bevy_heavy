@@ -56,7 +56,9 @@ approx::assert_relative_eq!(sum - mass_props_2, mass_props);
 To support mass property computation for custom shapes, implement `ComputeMassProperties2d`
 or `ComputeMassProperties3d` for them.
 
-## Supported `bevy_math` versions
+## Supported `bevy_math` Versions
+
+A crates.io release is coming soon.
 
 | `bevy_math` | `bevy_heavy` |
 | ----------- | ------------ |
