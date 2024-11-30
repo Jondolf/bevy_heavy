@@ -100,6 +100,14 @@ impl MassProperties2d {
         translation + rotation.into() * self.center_of_mass
     }
 
+    /// Computes the angular inertia corresponding to a mass of `1.0`.
+    ///
+    /// If the mass is zero, zero is returned.
+    #[inline]
+    pub fn unit_angular_inertia(&self) -> f32 {
+        self.mass.recip_or_zero() * self.angular_inertia
+    }
+
     /// Computes the principal angular inertia at a given `offset`.
     ///
     /// The shifted angular inertia is computed as `angular_inertia + mass * offset.length_squared()`.

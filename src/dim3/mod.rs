@@ -9,6 +9,8 @@ mod impls;
 mod eigen3;
 pub use eigen3::SymmetricEigen3;
 
+use crate::RecipOrZero;
+
 /// A trait for computing [`MassProperties3d`] for 3D objects.
 pub trait ComputeMassProperties3d {
     /// Computes the mass of the object with a given `density`.
@@ -181,6 +183,22 @@ impl MassProperties3d {
     #[inline]
     pub fn global_center_of_mass(&self, translation: Vec3, rotation: Quat) -> Vec3 {
         translation + rotation * self.center_of_mass
+    }
+
+    /// Computes the principal angular inertia corresponding to a mass of `1.0`.
+    ///
+    /// If the mass is zero, a zero vector is returned.
+    #[inline]
+    pub fn unit_principal_angular_inertia(&self) -> Vec3 {
+        self.mass.recip_or_zero() * self.principal_angular_inertia
+    }
+
+    /// Computes the world-space angular inertia tensor corresponding to a mass of `1.0`.
+    ///
+    /// If the mass is zero, a zero tensor is returned.
+    #[inline]
+    pub fn unit_angular_inertia_tensor(&self) -> AngularInertiaTensor {
+        self.mass.recip_or_zero() * self.angular_inertia_tensor()
     }
 
     /// Computes the world-space angular inertia tensor from the principal inertia.
