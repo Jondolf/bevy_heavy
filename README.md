@@ -4,9 +4,6 @@
 for the [geometric primitives] in the [Bevy game engine][Bevy]. This is typically required
 for things like physics simulations.
 
-> **Warning**: `bevy_heavy` is WIP and not well tested yet. I will release it once there are adequate tests and docs,
-> and I've made sure it works integrated into a physics engine.
-
 [geometric primitives]: https://docs.rs/bevy/latest/bevy/math/primitives/index.html
 [Bevy]: https://bevyengine.org
 
@@ -58,6 +55,12 @@ approx::assert_relative_eq!(sum - mass_props_2, mass_props);
 
 To support mass property computation for custom shapes, implement `ComputeMassProperties2d`
 or `ComputeMassProperties3d` for them.
+
+## Supported `bevy_math` versions
+
+| `bevy_math` | `bevy_heavy` |
+| ----------- | ------------ |
+| 0.15        | main         |
 
 ## License
 
