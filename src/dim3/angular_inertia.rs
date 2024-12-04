@@ -7,7 +7,7 @@ use bevy_reflect::{ReflectDeserialize, ReflectSerialize};
 
 use super::SymmetricEigen3;
 
-// TODO: Add errors for asymmetric and non-positive definite matrices.
+// TODO: Add errors for asymmetric and non-positive-semidefinite matrices.
 /// An error returned for an invalid [`AngularInertiaTensor`] in 3D.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AngularInertiaTensorError {
@@ -17,17 +17,24 @@ pub enum AngularInertiaTensorError {
     Nan,
 }
 
-// TODO: The matrix should be symmetric and positive definite.
+// TODO: The matrix should be symmetric and positive-semidefinite.
 //       We could add a custom `SymmetricMat3` type to enforce symmetricity and reduce memory usage.
-/// The 3x3 [angular inertia] tensor of a 3D object.
+/// The 3x3 [angular inertia] tensor of a 3D object, representing resistance to angular acceleration.
 ///
-/// This represents the torque needed for a desired angular acceleration
-/// about the coordinate axes defined by the local inertial frame.
+/// The [inertia tensor] is a [symmetric], [positive-semidefinite] matrix that describes the moment of inertia
+/// for rotations about the X, Y, and Z axes. By [diagonalizing] this matrix, it is possible to extract
+/// the [principal axes of inertia] (a [`Vec3`]) and a local inertial frame (a [`Quat`]) that defines
+/// the XYZ axes. This diagonalization can be performed using the [`principal_angular_inertia_with_local_frame`] method.
 ///
-/// The principal angular inertia and local inertial frame can be extracted with the
-/// [`principal_angular_inertia_with_local_frame`] method.
+/// The diagonalized representation is more compact and often easier to work with,
+/// but the full tensor can be more efficient for computations using the angular inertia.
 ///
 /// [angular inertia]: crate#angular-inertia
+/// [inertia tensor]: https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+/// [symmetric]: https://en.wikipedia.org/wiki/Symmetric_matrix
+/// [positive-semidefinite]: https://en.wikipedia.org/wiki/Definite_matrix
+/// [diagonalizing]: https://en.wikipedia.org/wiki/Diagonalizable_matrix#Diagonalization
+/// [principal axes of inertia]: https://en.wikipedia.org/wiki/Moment_of_inertia#Principal_axes
 /// [`principal_angular_inertia_with_local_frame`]: AngularInertiaTensor::principal_angular_inertia_with_local_frame
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 #[cfg_attr(feature = "bevy_reflect", derive(bevy_reflect::Reflect))]
@@ -37,6 +44,7 @@ pub enum AngularInertiaTensorError {
     all(feature = "bevy_reflect", feature = "serialize"),
     reflect(Serialize, Deserialize)
 )]
+#[doc(alias = "MomentOfInertiaTensor")]
 pub struct AngularInertiaTensor(Mat3);
 
 impl Deref for AngularInertiaTensor {
@@ -51,9 +59,6 @@ impl Deref for AngularInertiaTensor {
 impl AngularInertiaTensor {
     /// Zero angular inertia.
     pub const ZERO: Self = Self(Mat3::ZERO);
-
-    /// An angular inertia tensor with a principal angular inertia of `1.0` along the diagonal.
-    pub const ONE: Self = Self(Mat3::IDENTITY);
 
     /// An angular inertia tensor with a principal angular inertia of `1.0` along the diagonal.
     pub const IDENTITY: Self = Self(Mat3::IDENTITY);
@@ -153,9 +158,13 @@ impl AngularInertiaTensor {
         }
     }
 
-    /// Creates a new [`AngularInertiaTensor`] from the given angular inertia tensor.
+    /// Creates a new [`AngularInertiaTensor`] from the given angular inertia [tensor].
     ///
-    /// The tensor should be symmetric and positive definite.
+    /// The tensor should be [symmetric] and [positive-semidefinite], but this is *not* checked.
+    ///
+    /// [tensor]: https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+    /// [symmetric]: https://en.wikipedia.org/wiki/Symmetric_matrix
+    /// [positive-semidefinite]: https://en.wikipedia.org/wiki/Definite_matrix
     #[inline]
     #[doc(alias = "from_tensor")]
     pub fn from_mat3(mat: Mat3) -> Self {
@@ -174,7 +183,7 @@ impl AngularInertiaTensor {
     /// Returns a mutable reference to the [`Mat3`] stored in `self`.
     ///
     /// Note that this allows making changes that could make the angular inertia tensor invalid
-    /// (non-symmetric or non-positive definite).
+    /// (non-symmetric or non-positive-semidefinite).
     ///
     /// Equivalent to [`AngularInertiaTensor::value_mut`].
     #[doc(alias = "as_tensor_mut")]
@@ -194,7 +203,7 @@ impl AngularInertiaTensor {
     /// Returns a mutable reference to the [`Mat3`] stored in `self`.
     ///
     /// Note that this allows making changes that could make the angular inertia tensor invalid
-    /// (non-symmetric or non-positive definite).
+    /// (non-symmetric or non-positive-semidefinite).
     ///
     /// Equivalent to [`AngularInertiaTensor::as_mat3_mut`].
     #[inline]

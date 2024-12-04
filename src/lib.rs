@@ -86,7 +86,7 @@
 //! **[Mass](https://en.wikipedia.org/wiki/Mass)** is a scalar value representing resistance
 //! to linear acceleration when a force is applied.
 //!
-//! Mass is typically measured in kilograms (kg).
+//! Mass is commonly measured in kilograms (kg).
 //!
 //! ## Angular Inertia
 //!
@@ -100,16 +100,18 @@
 //! In 2D, angular inertia can be treated as a scalar value, as it is only defined
 //! relative to the Z axis.
 //!
-//! In 3D, angular inertia can be represented with a symmetric 3x3 [tensor] matrix ([`AngularInertiaTensor`])
-//! that describes the moment of inertia for rotations about the X, Y, and Z axes. By [diagonalizing]
-//! this matrix, it is possible to extract the [principal axes of inertia] (a [`Vec3`]) and a local inertial frame (a [`Quat`])
-//! that defines the XYZ axes.
+//! In 3D, angular inertia can be represented with a [symmetric], [positive-semidefinite] 3x3 [tensor]
+//! ([`AngularInertiaTensor`]) that describes the moment of inertia for rotations about the X, Y, and Z axes.
+//! By [diagonalizing] this matrix, it is possible to extract the [principal axes of inertia] (a [`Vec3`])
+//! and a local inertial frame (a [`Quat`]) that defines the XYZ axes.
 //!
 //! The latter diagonalized representation is more compact and often easier to work with,
 //! but the full tensor can be more efficient for computations using the angular inertia.
 //!
-//! Angular inertia is typically measured in kilograms times meters squared (kg⋅m²).
+//! Angular inertia is commonly measured in kilograms times meters squared (kg⋅m²).
 //!
+//! [symmetric]: https://en.wikipedia.org/wiki/Symmetric_matrix
+//! [positive-semidefinite]: https://en.wikipedia.org/wiki/Definite_matrix
 //! [tensor]: https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
 //! [diagonalizing]: https://en.wikipedia.org/wiki/Diagonalizable_matrix#Diagonalization
 //! [principal axes of inertia]: https://en.wikipedia.org/wiki/Moment_of_inertia#Principal_axes
@@ -125,7 +127,7 @@
 //! If an object has uniform density, mass is evenly distributed,
 //! and the center of mass is at the [geometric center], also known as the [centroid].
 //!
-//! The center of mass is typically measured in meters (m).
+//! The center of mass is commonly measured in meters (m).
 //!
 //! [geometric center]: https://en.wikipedia.org/wiki/Centroid
 //! [centroid]: https://en.wikipedia.org/wiki/Centroid

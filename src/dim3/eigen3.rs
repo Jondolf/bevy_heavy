@@ -4,7 +4,10 @@
 
 use bevy_math::{ops, FloatPow, Mat3, Vec3, Vec3Swizzles};
 
-/// The eigen decomposition of a symmetric 3x3 matrix.
+/// The [eigen decomposition] of a [symmetric] 3x3 matrix.
+///
+/// [eigen decomposition]: https://en.wikipedia.org/wiki/Eigendecomposition_of_a_matrix
+/// [symmetric]: https://en.wikipedia.org/wiki/Symmetric_matrix
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "bevy_reflect", derive(bevy_reflect::Reflect))]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
@@ -75,9 +78,9 @@ impl SymmetricEigen3 {
     /// If the matrix is already diagonal, the eigenvalues are returned as is without reordering.
     /// Otherwise, the eigenvalues are computed and returned in ascending order
     /// such that `eigen1 <= eigen2 <= eigen3`.
-    ///
-    /// Reference: <https://en.wikipedia.org/wiki/Eigenvalue_algorithm#3%C3%973_matrices>
     pub fn eigenvalues(mat: Mat3) -> (Vec3, bool) {
+        // Reference: https://en.wikipedia.org/wiki/Eigenvalue_algorithm#Symmetric_3%C3%973_matrices
+
         let p1 = mat.y_axis.x.squared() + mat.z_axis.x.squared() + mat.z_axis.y.squared();
 
         if p1 == 0.0 {
