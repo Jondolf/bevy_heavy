@@ -157,6 +157,8 @@ impl MassProperties2d {
     }
 
     /// Returns the mass propeorties with the inverse of mass and angular inertia.
+    ///
+    /// The center of mass is left unchanged.
     #[inline]
     pub fn inverse(&self) -> Self {
         Self {

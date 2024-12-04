@@ -274,6 +274,8 @@ impl MassProperties3d {
     }
 
     /// Returns the mass propeorties with the inverse of mass and principal angular inertia.
+    ///
+    /// The center of mass and local inertial frame are left unchanged.
     #[inline]
     pub fn inverse(&self) -> Self {
         Self {

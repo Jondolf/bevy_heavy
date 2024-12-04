@@ -11,7 +11,7 @@ use super::SymmetricEigen3;
 /// An error returned for an invalid [`AngularInertiaTensor`] in 3D.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AngularInertiaTensorError {
-    /// The mass is negative.
+    /// The mass is negative or NaN.
     Negative,
     /// The mass is NaN.
     Nan,
@@ -70,11 +70,12 @@ impl AngularInertiaTensor {
     ///
     /// The principal angular inertia represents the torque needed for a desired angular acceleration
     /// about the local coordinate axes. To specify the orientation of the local inertial frame,
-    /// consider using [`AngularInertiaTensor::new_with_local_frame`].
+    /// consider using [`new_with_local_frame`](AngularInertiaTensor::new_with_local_frame).
     ///
     /// # Panics
     ///
-    /// Panics if any component of the principal angular inertia is negative when `debug_assertions` are enabled.
+    /// Panics if any component of the principal angular inertia is negative or NaN
+    /// when `debug_assertions` are enabled.
     #[inline]
     #[doc(alias = "from_principal_angular_inertia")]
     pub fn new(principal_angular_inertia: Vec3) -> Self {
@@ -90,11 +91,12 @@ impl AngularInertiaTensor {
     ///
     /// The principal angular inertia represents the torque needed for a desired angular acceleration
     /// about the local coordinate axes. To specify the orientation of the local inertial frame,
-    /// consider using [`AngularInertiaTensor::try_new_with_local_frame`].
+    /// consider using [`try_new_with_local_frame`](AngularInertiaTensor::try_new_with_local_frame).
     ///
     /// # Errors
     ///
-    /// Returns [`Err(AngularInertiaTensorError)`](AngularInertiaTensorError) if any component of the principal angular inertia is negative.
+    /// Returns [`Err(AngularInertiaTensorError)`](AngularInertiaTensorError) if any component
+    /// of the principal angular inertia is negative or NaN.
     #[inline]
     pub fn try_new(principal_angular_inertia: Vec3) -> Result<Self, AngularInertiaTensorError> {
         if !principal_angular_inertia.cmpge(Vec3::ZERO).all() {
@@ -114,7 +116,8 @@ impl AngularInertiaTensor {
     ///
     /// # Panics
     ///
-    /// Panics if any component of the principal angular inertia is negative when `debug_assertions` are enabled.
+    /// Panics if any component of the principal angular inertia is negative or NaN
+    /// when `debug_assertions` are enabled.
     #[inline]
     #[doc(alias = "from_principal_angular_inertia_with_local_frame")]
     pub fn new_with_local_frame(principal_angular_inertia: Vec3, orientation: Quat) -> Self {
@@ -139,7 +142,7 @@ impl AngularInertiaTensor {
     /// # Errors
     ///
     /// Returns [`Err(AngularInertiaTensorError)`](AngularInertiaTensorError) if any component
-    /// of the principal angular inertia is negative.
+    /// of the principal angular inertia is negative or NaN.
     #[inline]
     pub fn try_new_with_local_frame(
         principal_angular_inertia: Vec3,
@@ -173,7 +176,7 @@ impl AngularInertiaTensor {
 
     /// Returns the angular inertia tensor as a [`Mat3`].
     ///
-    /// Equivalent to [`AngularInertiaTensor::value`].
+    /// Equivalent to [`value`](AngularInertiaTensor::value).
     #[doc(alias = "as_tensor")]
     #[inline]
     pub fn as_mat3(&self) -> Mat3 {
@@ -185,7 +188,7 @@ impl AngularInertiaTensor {
     /// Note that this allows making changes that could make the angular inertia tensor invalid
     /// (non-symmetric or non-positive-semidefinite).
     ///
-    /// Equivalent to [`AngularInertiaTensor::value_mut`].
+    /// Equivalent to [`value_mut`](AngularInertiaTensor::value_mut).
     #[doc(alias = "as_tensor_mut")]
     #[inline]
     pub fn as_mat3_mut(&mut self) -> &mut Mat3 {
@@ -194,7 +197,7 @@ impl AngularInertiaTensor {
 
     /// Returns the angular inertia tensor as a [`Mat3`].
     ///
-    /// Equivalent to [`AngularInertiaTensor::as_mat3`].
+    /// Equivalent to [`as_mat3`](AngularInertiaTensor::as_mat3).
     #[inline]
     pub fn value(self) -> Mat3 {
         self.0
@@ -205,7 +208,7 @@ impl AngularInertiaTensor {
     /// Note that this allows making changes that could make the angular inertia tensor invalid
     /// (non-symmetric or non-positive-semidefinite).
     ///
-    /// Equivalent to [`AngularInertiaTensor::as_mat3_mut`].
+    /// Equivalent to [`as_mat3_mut`](AngularInertiaTensor::as_mat3_mut).
     #[inline]
     pub fn value_mut(&mut self) -> &mut Mat3 {
         &mut self.0
