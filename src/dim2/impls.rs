@@ -555,9 +555,9 @@ mod tests {
     // TODO: Test randomized shape definitions.
 
     test_shape!(circle, Circle::new(2.0));
-    //test_shape!(circular_sector, CircularSector::new(2.0, TAU));
-    //test_shape!(circular_segment, CircularSegment::new(2.0, TAU));
-    //test_shape!(ellipse, Ellipse::new(2.0, 1.0));
+    // test_shape!(circular_sector, CircularSector::new(2.0, TAU));
+    // test_shape!(circular_segment, CircularSegment::new(2.0, TAU));
+    // test_shape!(ellipse, Ellipse::new(2.0, 1.0));
     test_shape!(annulus, Annulus::new(1.0, 2.0));
     test_shape!(
         triangle,
@@ -570,10 +570,6 @@ mod tests {
     test_shape!(rectangle, Rectangle::new(2.0, 1.0));
     // test_shape!(rhombus, Rhombus::new(2.0, 1.0));
     // test_shape!(regular_polygon, RegularPolygon::new(2.0, 6));
-
-    // TODO: The capsule sampling is wrong in 0.14, but fixed by https://github.com/bevyengine/bevy/pull/15191
-    // FIXME: The capsule angular inertia is not accurate for taller capsules.
-    // test_shape!(capsule, Capsule2d::new(1.0, 0.25));
-
     // test_shape!(polygon, Polygon::new([Vec2::ZERO, Vec2::X, Vec2::Y]));
+    test_shape!(capsule, Capsule2d::new(1.0, 0.25));
 }
