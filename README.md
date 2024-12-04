@@ -1,5 +1,10 @@
 # `bevy_heavy`
 
+[![MIT/Apache 2.0](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](https://github.com/Jondolf/bevy_heavy#license)
+[![ci](https://github.com/Jondolf/bevy_heavy/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Jondolf/bevy_heavy/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/bevy_heavy?label=crates.io)](https://crates.io/crates/bevy_heavy)
+[![docs.rs](https://img.shields.io/docsrs/bevy_heavy?label=docs.rs)](https://docs.rs/bevy_heavy)
+
 `bevy_heavy` is a crate for computing mass properties (mass, angular inertia, and center of mass)
 for the [geometric primitives] in the [Bevy game engine][Bevy]. This is typically required
 for things like physics simulations.
