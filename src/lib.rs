@@ -84,14 +84,14 @@
 //! ## Mass
 //!
 //! **[Mass](https://en.wikipedia.org/wiki/Mass)** is a scalar value representing resistance
-//! to acceleration when a force is applied.
+//! to linear acceleration when a force is applied.
 //!
 //! Mass is typically measured in kilograms (kg).
 //!
 //! ## Angular Inertia
 //!
 //! **[Angular inertia](https://en.wikipedia.org/wiki/Moment_of_inertia)**, also known as
-//! the **moment of inertia** or **rotational inertia**, is the rotational analogue of mass.
+//! the **moment of inertia** or **rotational inertia**, is the rotational analog of mass.
 //! It represents resistance to angular acceleration when a torque is applied.
 //!
 //! An object's angular inertia depends on its mass, shape, and how the mass is distributed
