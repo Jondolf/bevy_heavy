@@ -5,7 +5,7 @@
 //! [mass]: #mass
 //! [angular inertia]: #angular-inertia
 //! [center of mass]: #center-of-mass
-//! [geometric primitives]: https://docs.rs/bevy/latest/bevy/math/primitives/index.html
+//! [geometric primitives]: bevy_math::primitives
 //! [Bevy]: https://bevyengine.org
 //!
 //! # Usage

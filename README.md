@@ -58,11 +58,9 @@ or `ComputeMassProperties3d` for them.
 
 ## Supported `bevy_math` Versions
 
-A crates.io release is coming soon.
-
 | `bevy_math` | `bevy_heavy` |
 | ----------- | ------------ |
-| 0.15        | main         |
+| 0.15        | 0.1          |
 
 ## License
 
