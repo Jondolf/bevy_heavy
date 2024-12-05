@@ -1,4 +1,6 @@
 use bevy_math::{DVec3, Isometry3d, Mat3, Quat, Vec3};
+#[cfg(all(feature = "bevy_reflect", feature = "serialize"))]
+use bevy_reflect::{ReflectDeserialize, ReflectSerialize};
 
 mod angular_inertia;
 pub use angular_inertia::{AngularInertiaTensor, AngularInertiaTensorError};
