@@ -180,7 +180,7 @@ impl ComputeMassProperties2d for RegularPolygon {
 
     #[inline]
     fn unit_angular_inertia(&self) -> f32 {
-        let half_external_angle = std::f32::consts::PI / self.sides as f32;
+        let half_external_angle = core::f32::consts::PI / self.sides as f32;
         self.circumradius().squared() / 6.0 * (1.0 + 2.0 * ops::cos(half_external_angle).squared())
     }
 
@@ -193,7 +193,7 @@ impl ComputeMassProperties2d for RegularPolygon {
 impl ComputeMassProperties2d for Capsule2d {
     #[inline]
     fn mass(&self, density: f32) -> f32 {
-        let area = self.radius * (std::f32::consts::PI * self.radius + 4.0 * self.half_length);
+        let area = self.radius * (core::f32::consts::PI * self.radius + 4.0 * self.half_length);
         area * density
     }
 

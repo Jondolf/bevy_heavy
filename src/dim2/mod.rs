@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use bevy_math::{DVec2, Isometry2d, Vec2};
 #[cfg(all(feature = "bevy_reflect", feature = "serialize"))]
 use bevy_reflect::{ReflectDeserialize, ReflectSerialize};
@@ -188,7 +190,7 @@ impl MassProperties2d {
     }
 }
 
-impl std::ops::Add for MassProperties2d {
+impl core::ops::Add for MassProperties2d {
     type Output = Self;
 
     #[inline]
@@ -220,14 +222,14 @@ impl std::ops::Add for MassProperties2d {
     }
 }
 
-impl std::ops::AddAssign for MassProperties2d {
+impl core::ops::AddAssign for MassProperties2d {
     #[inline]
     fn add_assign(&mut self, other: Self) {
         *self = *self + other;
     }
 }
 
-impl std::ops::Sub for MassProperties2d {
+impl core::ops::Sub for MassProperties2d {
     type Output = Self;
 
     #[inline]
@@ -266,14 +268,14 @@ impl std::ops::Sub for MassProperties2d {
     }
 }
 
-impl std::ops::SubAssign for MassProperties2d {
+impl core::ops::SubAssign for MassProperties2d {
     #[inline]
     fn sub_assign(&mut self, other: Self) {
         *self = *self - other;
     }
 }
 
-impl std::iter::Sum for MassProperties2d {
+impl core::iter::Sum for MassProperties2d {
     #[inline]
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         let mut total_mass = 0.0;

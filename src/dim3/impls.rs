@@ -206,7 +206,7 @@ impl ComputeMassProperties3d for ConicalFrustum {
         } else {
             // https://mathworld.wolfram.com/ConicalFrustum.html
             let radii_squared = self.radius_top.squared() + self.radius_bottom.squared();
-            let volume = std::f32::consts::FRAC_PI_3
+            let volume = core::f32::consts::FRAC_PI_3
                 * self.height
                 * (radii_squared + self.radius_top * self.radius_bottom);
             volume * density
