@@ -670,13 +670,16 @@ impl<const N: usize> ComputeMassProperties3d for Polyline3d<N> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use alloc::vec::Vec;
+
     use approx::assert_relative_eq;
     use bevy_math::{
         bounding::{Bounded3d, BoundingVolume},
         Isometry3d, ShapeSample, Vec3Swizzles,
     };
     use rand::SeedableRng;
+
+    use super::*;
 
     macro_rules! test_shape {
         ($test_name:tt, $shape:expr, $point_generator:expr) => {

@@ -511,10 +511,13 @@ impl<const N: usize> ComputeMassProperties2d for Polyline2d<N> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use alloc::vec::Vec;
+
     use approx::assert_relative_eq;
     use bevy_math::ShapeSample;
     use rand::SeedableRng;
+
+    use super::*;
 
     macro_rules! test_shape {
         ($test_name:tt, $shape:expr) => {
