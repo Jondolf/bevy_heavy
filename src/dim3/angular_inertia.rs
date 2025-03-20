@@ -1,4 +1,4 @@
-use std::ops::*;
+use core::ops::*;
 
 use crate::MatExt;
 use bevy_math::{Mat3, Quat, Vec3};
@@ -236,11 +236,11 @@ impl AngularInertiaTensor {
         let mut eigen = SymmetricEigen3::new(self.0).reverse();
 
         if eigen.eigenvectors.determinant() < 0.0 {
-            std::mem::swap(
+            core::mem::swap(
                 &mut eigen.eigenvectors.y_axis,
                 &mut eigen.eigenvectors.z_axis,
             );
-            std::mem::swap(&mut eigen.eigenvalues.y, &mut eigen.eigenvalues.z);
+            core::mem::swap(&mut eigen.eigenvalues.y, &mut eigen.eigenvalues.z);
         }
 
         let mut local_inertial_frame = Quat::from_mat3(&eigen.eigenvectors).normalize();

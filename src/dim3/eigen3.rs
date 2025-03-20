@@ -37,12 +37,12 @@ impl SymmetricEigen3 {
             // ordering the eigenvectors accordingly, and return early.
             let mut eigenvectors = Mat3::IDENTITY;
             if eigenvalues[0] > eigenvalues[1] {
-                std::mem::swap(&mut eigenvalues.x, &mut eigenvalues.y);
-                std::mem::swap(&mut eigenvectors.x_axis, &mut eigenvectors.y_axis);
+                core::mem::swap(&mut eigenvalues.x, &mut eigenvalues.y);
+                core::mem::swap(&mut eigenvectors.x_axis, &mut eigenvectors.y_axis);
             }
             if eigenvalues[1] > eigenvalues[2] {
-                std::mem::swap(&mut eigenvalues.y, &mut eigenvalues.z);
-                std::mem::swap(&mut eigenvectors.y_axis, &mut eigenvectors.z_axis);
+                core::mem::swap(&mut eigenvalues.y, &mut eigenvalues.z);
+                core::mem::swap(&mut eigenvectors.y_axis, &mut eigenvectors.z_axis);
             }
             return Self {
                 eigenvalues,
@@ -93,14 +93,14 @@ impl SymmetricEigen3 {
             + (mat.y_axis.y - q).squared()
             + (mat.z_axis.z - q).squared()
             + 2.0 * p1;
-        let p = (p2 / 6.0).sqrt();
+        let p = ops::sqrt(p2 / 6.0);
         let mat_b = 1.0 / p * (mat - q * Mat3::IDENTITY);
         let r = mat_b.determinant() / 2.0;
 
         // r should be in the [-1, 1] range for a symmetric matrix,
         // but computation error can leave it slightly outside this range.
         let phi = if r <= -1.0 {
-            std::f32::consts::FRAC_PI_3
+            core::f32::consts::FRAC_PI_3
         } else if r >= 1.0 {
             0.0
         } else {
@@ -109,7 +109,7 @@ impl SymmetricEigen3 {
 
         // The eigenvalues satisfy eigen3 <= eigen2 <= eigen1
         let eigen1 = q + 2.0 * p * ops::cos(phi);
-        let eigen3 = q + 2.0 * p * ops::cos(phi + 2.0 * std::f32::consts::FRAC_PI_3);
+        let eigen3 = q + 2.0 * p * ops::cos(phi + 2.0 * core::f32::consts::FRAC_PI_3);
         let eigen2 = 3.0 * q - eigen1 - eigen3; // trace(mat) = eigen1 + eigen2 + eigen3
         (Vec3::new(eigen3, eigen2, eigen1), false)
     }
@@ -143,11 +143,11 @@ impl SymmetricEigen3 {
             i_max = 2;
         }
         if i_max == 0 {
-            c0xc1 / d0.sqrt()
+            c0xc1 / ops::sqrt(d0)
         } else if i_max == 1 {
-            c0xc2 / d1.sqrt()
+            c0xc2 / ops::sqrt(d1)
         } else {
-            c1xc2 / d2.sqrt()
+            c1xc2 / ops::sqrt(d2)
         }
     }
 
@@ -184,13 +184,13 @@ impl SymmetricEigen3 {
                     // m00 is the largest component of the row.
                     // Factor it out for normalization and discard to avoid underflow or overflow.
                     m01 /= m00;
-                    m00 = 1.0 / (1.0 + m01 * m01).sqrt();
+                    m00 = 1.0 / ops::sqrt(1.0 + m01 * m01);
                     m01 *= m00;
                 } else {
                     // m01 is the largest component of the row.
                     // Factor it out for normalization and discard to avoid underflow or overflow.
                     m00 /= m01;
-                    m01 = 1.0 / (1.0 + m00 * m00).sqrt();
+                    m01 = 1.0 / ops::sqrt(1.0 + m00 * m00);
                     m00 *= m01;
                 }
                 return m01 * u - m00 * v;
@@ -202,13 +202,13 @@ impl SymmetricEigen3 {
                     // m11 is the largest component of the row.
                     // Factor it out for normalization and discard to avoid underflow or overflow.
                     m01 /= m11;
-                    m11 = 1.0 / (1.0 + m01 * m01).sqrt();
+                    m11 = 1.0 / ops::sqrt(1.0 + m01 * m01);
                     m01 *= m11;
                 } else {
                     // m01 is the largest component of the row.
                     // Factor it out for normalization and discard to avoid underflow or overflow.
                     m11 /= m01;
-                    m01 = 1.0 / (1.0 + m11 * m11).sqrt();
+                    m01 = 1.0 / ops::sqrt(1.0 + m11 * m11);
                     m11 *= m01;
                 }
                 return m11 * u - m01 * v;

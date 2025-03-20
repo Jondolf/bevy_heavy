@@ -133,6 +133,10 @@
 //! [centroid]: https://en.wikipedia.org/wiki/Centroid
 
 #![warn(missing_docs)]
+#![no_std]
+
+#[cfg(any(feature = "2d", feature = "3d"))]
+extern crate alloc;
 
 #[cfg(feature = "2d")]
 mod dim2;
