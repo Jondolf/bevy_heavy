@@ -33,6 +33,7 @@ approx = ["dep:approx", "bevy_math/approx"]
 # across platforms at the cost of losing hardware-level optimization using intrinsics.
 libm = ["bevy_math/libm"]
 
+# Enable the Rust standard library.
 std = ["bevy_math/std"]
 
 [dependencies]
@@ -51,9 +52,9 @@ bevy_heavy = { path = ".", features = ["approx"] }
 # Math
 approx = { version = "0.5", default-features = false }
 bevy_math = { version = "0.16.0-rc.1", default-features = false, features = [
-  "std",
-  "approx",
-  "rand",
+    "std",
+    "approx",
+    "rand",
 ] }
 
 # Random number generation
