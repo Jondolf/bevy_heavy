@@ -175,7 +175,7 @@ impl SymmetricEigen3 {
         let mut m00 = u.dot(au) - eigenvalue2;
         let mut m01 = u.dot(av);
         let mut m11 = v.dot(av) - eigenvalue2;
-        let (abs_m00, abs_m01, abs_m11) = (m00.abs(), m01.abs(), m11.abs());
+        let (abs_m00, abs_m01, abs_m11) = (ops::abs(m00), ops::abs(m01), ops::abs(m11));
 
         if abs_m00 >= abs_m11 {
             let max_abs_component = abs_m00.max(abs_m01);

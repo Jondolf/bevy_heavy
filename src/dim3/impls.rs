@@ -1,5 +1,6 @@
 use super::{AngularInertiaTensor, ComputeMassProperties3d, MassProperties3d};
 use bevy_math::{
+    ops,
     prelude::Tetrahedron,
     primitives::{
         BoxedPolyline3d, Capsule3d, Cone, ConicalFrustum, Cuboid, Cylinder, Line3d, Measured3d,
@@ -236,7 +237,7 @@ impl ComputeMassProperties3d for ConicalFrustum {
 
             // Create the large and small cone.
             let cone_height =
-                max_radius * (self.height / (self.radius_top - self.radius_bottom).abs());
+                max_radius * (self.height / ops::abs(self.radius_top - self.radius_bottom));
             let large_cone = Cone {
                 radius: max_radius,
                 height: cone_height,
@@ -330,7 +331,7 @@ impl ComputeMassProperties3d for ConicalFrustum {
 
             // Create the large and small cone.
             let cone_height =
-                max_radius * (self.height / (self.radius_top - self.radius_bottom).abs());
+                max_radius * (self.height / ops::abs(self.radius_top - self.radius_bottom));
             let large_cone = Cone {
                 radius: max_radius,
                 height: cone_height,
