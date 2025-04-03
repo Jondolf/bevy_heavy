@@ -268,11 +268,12 @@ impl AngularInertiaTensor {
     #[inline]
     pub fn shifted(self, mass: f32, offset: Vec3) -> Self {
         if offset != Vec3::ZERO {
+            // https://en.wikipedia.org/wiki/Parallel_axis_theorem#Tensor_generalization
             let diagonal_element = offset.length_squared();
             let diagonal_mat = Mat3::from_diagonal(Vec3::splat(diagonal_element));
             let offset_outer_product =
                 Mat3::from_cols(offset * offset.x, offset * offset.y, offset * offset.z);
-            Self::from_mat3(self.0 + (diagonal_mat + offset_outer_product) * mass)
+            Self::from_mat3(self.0 + mass * (diagonal_mat - offset_outer_product))
         } else {
             self
         }

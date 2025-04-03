@@ -482,4 +482,31 @@ impl approx::UlpsEq for MassProperties3d {
     }
 }
 
-// TODO: Tests
+#[cfg(test)]
+mod tests {
+    use alloc::vec;
+    use bevy_math::primitives::Cuboid;
+
+    use super::*;
+
+    #[test]
+    fn sum() {
+        let mass_props = Cuboid::from_length(1.0).mass_properties(1.0);
+
+        let sum: MassProperties3d = vec![
+            mass_props,
+            mass_props.transformed_by(Vec3::Y),
+            mass_props.transformed_by(Vec3::NEG_Y),
+        ]
+        .into_iter()
+        .sum();
+
+        let expected = Cuboid::new(1.0, 3.0, 1.0).mass_properties(1.0);
+        assert_eq!(sum.mass, expected.mass);
+        assert_eq!(
+            sum.angular_inertia_tensor(),
+            expected.angular_inertia_tensor()
+        );
+        assert_eq!(sum.center_of_mass, expected.center_of_mass);
+    }
+}
