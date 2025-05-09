@@ -8,7 +8,7 @@ description = "Mass property computation for Bevy's geometric primitives."
 documentation = "https://docs.rs/bevy_heavy"
 repository = "https://github.com/Jondolf/bevy_heavy"
 readme = "README.md"
-keywords = ["gamedev", "physics", "simulation", "math", "mass", "bevy"]
+keywords = ["gamedev", "physics", "simulation", "math", "bevy"]
 categories = ["game-development", "science", "mathematics", "simulation"]
 
 [features]
