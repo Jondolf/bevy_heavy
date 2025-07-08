@@ -1,6 +1,7 @@
 //! Extension traits for math types.
 
 use bevy_math::*;
+use bevy_math_extensions::*;
 
 /// An extension trait for computing reciprocals without division by zero.
 pub trait RecipOrZero {
@@ -108,6 +109,28 @@ impl MatExt for Mat3 {
 }
 
 impl MatExt for DMat3 {
+    #[inline]
+    fn inverse_or_zero(self) -> Self {
+        if self.determinant() == 0.0 {
+            Self::ZERO
+        } else {
+            self.inverse()
+        }
+    }
+}
+
+impl MatExt for SymmetricMat2 {
+    #[inline]
+    fn inverse_or_zero(self) -> Self {
+        if self.determinant() == 0.0 {
+            Self::ZERO
+        } else {
+            self.inverse()
+        }
+    }
+}
+
+impl MatExt for SymmetricMat3 {
     #[inline]
     fn inverse_or_zero(self) -> Self {
         if self.determinant() == 0.0 {

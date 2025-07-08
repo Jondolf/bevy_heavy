@@ -3,20 +3,20 @@
 // https://www.geometrictools.com/Documentation/RobustEigenSymmetric3x3.pdf
 
 use bevy_math::{ops, FloatPow, Mat3, Vec3, Vec3Swizzles};
+use bevy_math_extensions::SymmetricMat3;
 
-/// The [eigen decomposition] of a [symmetric] 3x3 matrix.
+/// The [eigen decomposition] of a [`SymmetricMat3`].
 ///
 /// [eigen decomposition]: https://en.wikipedia.org/wiki/Eigendecomposition_of_a_matrix
-/// [symmetric]: https://en.wikipedia.org/wiki/Symmetric_matrix
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "bevy_reflect", derive(bevy_reflect::Reflect))]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct SymmetricEigen3 {
-    /// The eigenvalues of the symmetric 3x3 matrix.
+    /// The eigenvalues of the [`SymmetricMat3`].
     ///
     /// These should be in ascending order `eigen1 <= eigen2 <= eigen3`.
     pub eigenvalues: Vec3,
-    /// The three eigenvectors of the symmetric 3x3 matrix.
+    /// The three eigenvectors of the [`SymmetricMat3`].
     /// Each eigenvector should be unit length and orthogonal to the other eigenvectors.
     ///
     /// The eigenvectors are ordered to correspond to the eigenvalues. For example,
@@ -25,11 +25,11 @@ pub struct SymmetricEigen3 {
 }
 
 impl SymmetricEigen3 {
-    /// Computes the eigen decomposition of the given symmetric 3x3 matrix.
+    /// Computes the eigen decomposition of the given [`SymmetricMat3`].
     ///
     /// The eigenvalues are returned in ascending order `eigen1 <= eigen2 <= eigen3`.
     /// This can be reversed with the [`reverse`](Self::reverse) method.
-    pub fn new(mat: Mat3) -> Self {
+    pub fn new(mat: SymmetricMat3) -> Self {
         let (mut eigenvalues, is_diagonal) = Self::eigenvalues(mat);
 
         if is_diagonal {
@@ -73,26 +73,24 @@ impl SymmetricEigen3 {
         }
     }
 
-    /// Computes the eigenvalues of a symmetric 3x3 matrix, also returning whether the input matrix is diagonal.
+    /// Computes the eigenvalues of a [`SymmetricMat3`], also returning whether the input matrix is diagonal.
     ///
     /// If the matrix is already diagonal, the eigenvalues are returned as is without reordering.
     /// Otherwise, the eigenvalues are computed and returned in ascending order
     /// such that `eigen1 <= eigen2 <= eigen3`.
-    pub fn eigenvalues(mat: Mat3) -> (Vec3, bool) {
+    pub fn eigenvalues(mat: SymmetricMat3) -> (Vec3, bool) {
         // Reference: https://en.wikipedia.org/wiki/Eigenvalue_algorithm#Symmetric_3%C3%973_matrices
 
-        let p1 = mat.y_axis.x.squared() + mat.z_axis.x.squared() + mat.z_axis.y.squared();
+        let p1 = mat.m01.squared() + mat.m02.squared() + mat.m12.squared();
 
         if p1 == 0.0 {
             // The matrix is diagonal.
-            return (Vec3::new(mat.x_axis.x, mat.y_axis.y, mat.z_axis.z), true);
+            return (Vec3::new(mat.m00, mat.m11, mat.m22), true);
         }
 
-        let q = (mat.x_axis.x + mat.y_axis.y + mat.z_axis.z) / 3.0;
-        let p2 = (mat.x_axis.x - q).squared()
-            + (mat.y_axis.y - q).squared()
-            + (mat.z_axis.z - q).squared()
-            + 2.0 * p1;
+        let q = (mat.m00 + mat.m11 + mat.m22) / 3.0;
+        let p2 =
+            (mat.m00 - q).squared() + (mat.m11 - q).squared() + (mat.m22 - q).squared() + 2.0 * p1;
         let p = ops::sqrt(p2 / 6.0);
         let mat_b = 1.0 / p * (mat - q * Mat3::IDENTITY);
         let r = mat_b.determinant() / 2.0;
@@ -123,8 +121,8 @@ impl SymmetricEigen3 {
     /// each other, it's recommended to use the `eigenvector2` method for the second eigenvector.
     ///
     /// The third eigenvector can be computed as the cross product of the first two.
-    pub fn eigenvector1(mat: Mat3, eigenvalue1: f32) -> Vec3 {
-        let cols = mat - Mat3::from_diagonal(Vec3::splat(eigenvalue1));
+    pub fn eigenvector1(mat: SymmetricMat3, eigenvalue1: f32) -> Vec3 {
+        let cols = (mat - SymmetricMat3::from_diagonal(Vec3::splat(eigenvalue1))).to_mat3();
         let c0xc1 = cols.x_axis.cross(cols.y_axis);
         let c0xc2 = cols.x_axis.cross(cols.z_axis);
         let c1xc2 = cols.y_axis.cross(cols.z_axis);
@@ -155,7 +153,7 @@ impl SymmetricEigen3 {
     /// computed from the root of a cubic polynomial with a potential multiplicity of 2.
     ///
     /// The third eigenvector can be computed as the cross product of the first two.
-    pub fn eigenvector2(mat: Mat3, eigenvector1: Vec3, eigenvalue2: f32) -> Vec3 {
+    pub fn eigenvector2(mat: SymmetricMat3, eigenvector1: Vec3, eigenvalue2: f32) -> Vec3 {
         // Compute right-handed orthonormal set { U, V, W }, where W is eigenvector1.
         let (u, v) = eigenvector1.any_orthonormal_pair();
 
@@ -231,11 +229,12 @@ mod test {
     use super::SymmetricEigen3;
     use approx::assert_relative_eq;
     use bevy_math::{Mat3, Vec3};
+    use bevy_math_extensions::SymmetricMat3;
     use rand::{Rng, SeedableRng};
 
     #[test]
     fn eigen_3x3() {
-        let mat = Mat3::from_cols_array_2d(&[[2.0, 7.0, 8.0], [7.0, 6.0, 3.0], [8.0, 3.0, 0.0]]);
+        let mat = SymmetricMat3::new(2.0, 7.0, 8.0, 6.0, 3.0, 0.0);
         let eigen = SymmetricEigen3::new(mat);
 
         assert_relative_eq!(
@@ -260,7 +259,7 @@ mod test {
 
     #[test]
     fn eigen_3x3_diagonal() {
-        let mat = Mat3::from_cols_array_2d(&[[2.0, 0.0, 0.0], [0.0, 5.0, 0.0], [0.0, 0.0, 3.0]]);
+        let mat = SymmetricMat3::from_diagonal(Vec3::new(2.0, 5.0, 3.0));
         let eigen = SymmetricEigen3::new(mat);
 
         assert_eq!(eigen.eigenvalues, Vec3::new(2.0, 3.0, 5.0));
@@ -310,7 +309,7 @@ mod test {
             let mat1 = eigenvectors * Mat3::from_diagonal(eigenvalues) * eigenvectors.transpose();
 
             // Compute the eigen decomposition of the constructed matrix.
-            let eigen = SymmetricEigen3::new(mat1);
+            let eigen = SymmetricEigen3::new(SymmetricMat3::from_mat3_unchecked(mat1));
 
             // Reconstruct the matrix from the computed eigenvalues and eigenvectors.
             let mat2 = eigen.eigenvectors

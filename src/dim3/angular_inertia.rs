@@ -2,6 +2,7 @@ use core::ops::*;
 
 use crate::MatExt;
 use bevy_math::{Mat3, Quat, Vec3};
+use bevy_math_extensions::{MatConversionError, SymmetricMat3};
 #[cfg(all(feature = "bevy_reflect", feature = "serialize"))]
 use bevy_reflect::{ReflectDeserialize, ReflectSerialize};
 
@@ -45,10 +46,10 @@ pub enum AngularInertiaTensorError {
     reflect(Serialize, Deserialize)
 )]
 #[doc(alias = "MomentOfInertiaTensor")]
-pub struct AngularInertiaTensor(Mat3);
+pub struct AngularInertiaTensor(SymmetricMat3);
 
 impl Deref for AngularInertiaTensor {
-    type Target = Mat3;
+    type Target = SymmetricMat3;
 
     #[inline]
     fn deref(&self) -> &Self::Target {
@@ -58,13 +59,13 @@ impl Deref for AngularInertiaTensor {
 
 impl AngularInertiaTensor {
     /// Zero angular inertia.
-    pub const ZERO: Self = Self(Mat3::ZERO);
+    pub const ZERO: Self = Self(SymmetricMat3::ZERO);
 
     /// An angular inertia tensor with a principal angular inertia of `1.0` along the diagonal.
-    pub const IDENTITY: Self = Self(Mat3::IDENTITY);
+    pub const IDENTITY: Self = Self(SymmetricMat3::IDENTITY);
 
     /// Infinite angular inertia.
-    pub const INFINITY: Self = Self(Mat3::from_diagonal(Vec3::INFINITY));
+    pub const INFINITY: Self = Self(SymmetricMat3::from_diagonal(Vec3::INFINITY));
 
     /// Creates a new [`AngularInertiaTensor`] from the given principal angular inertia.
     ///
@@ -84,7 +85,7 @@ impl AngularInertiaTensor {
             "principal angular inertia must be positive or zero for all axes"
         );
 
-        Self(Mat3::from_diagonal(principal_angular_inertia))
+        Self(SymmetricMat3::from_diagonal(principal_angular_inertia))
     }
 
     /// Tries to create a new [`AngularInertiaTensor`] from the given principal angular inertia.
@@ -104,7 +105,9 @@ impl AngularInertiaTensor {
         } else if principal_angular_inertia.is_nan() {
             Err(AngularInertiaTensorError::Nan)
         } else {
-            Ok(Self(Mat3::from_diagonal(principal_angular_inertia)))
+            Ok(Self(SymmetricMat3::from_diagonal(
+                principal_angular_inertia,
+            )))
         }
     }
 
@@ -126,11 +129,11 @@ impl AngularInertiaTensor {
             "principal angular inertia must be positive or zero for all axes"
         );
 
-        Self(
+        Self(SymmetricMat3::from_mat3_unchecked(
             Mat3::from_quat(orientation)
                 * Mat3::from_diagonal(principal_angular_inertia)
                 * Mat3::from_quat(orientation.inverse()),
-        )
+        ))
     }
 
     /// Tries to create a new [`AngularInertiaTensor`] from the given principal angular inertia
@@ -153,65 +156,93 @@ impl AngularInertiaTensor {
         } else if principal_angular_inertia.is_nan() {
             Err(AngularInertiaTensorError::Nan)
         } else {
-            Ok(Self(
+            Ok(Self(SymmetricMat3::from_mat3_unchecked(
                 Mat3::from_quat(orientation)
                     * Mat3::from_diagonal(principal_angular_inertia)
                     * Mat3::from_quat(orientation.inverse()),
-            ))
+            )))
         }
     }
 
-    /// Creates a new [`AngularInertiaTensor`] from the given angular inertia [tensor].
+    /// Creates a new [`AngularInertiaTensor`] from the given angular inertia [tensor]
+    /// represented as a [`SymmetricMat3`].
     ///
-    /// The tensor should be [symmetric] and [positive-semidefinite], but this is *not* checked.
+    /// The tensor should be [positive-semidefinite], but this is *not* checked.
     ///
     /// [tensor]: https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
-    /// [symmetric]: https://en.wikipedia.org/wiki/Symmetric_matrix
     /// [positive-semidefinite]: https://en.wikipedia.org/wiki/Definite_matrix
     #[inline]
     #[doc(alias = "from_tensor")]
-    pub fn from_mat3(mat: Mat3) -> Self {
+    pub const fn from_symmetric_mat3(mat: SymmetricMat3) -> Self {
         Self(mat)
     }
 
-    /// Returns the angular inertia tensor as a [`Mat3`].
+    /// Tries to create a new [`AngularInertiaTensor`] from the given angular inertia [tensor]
+    /// represented as a [`Mat3`].
+    ///
+    /// The tensor should be [positive-semidefinite], but this is *not* checked.
+    ///
+    /// [tensor]: https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+    /// [positive-semidefinite]: https://en.wikipedia.org/wiki/Definite_matrix
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`MatConversionError`] if the given matrix is not symmetric.
+    #[inline]
+    #[doc(alias = "from_tensor")]
+    pub fn try_from_mat3(mat: Mat3) -> Result<Self, MatConversionError> {
+        SymmetricMat3::try_from_mat3(mat).map(Self)
+    }
+
+    /// Creates a new [`AngularInertiaTensor`] from the given angular inertia [tensor]
+    /// represented as a [`Mat3`].
+    ///
+    /// Only the lower left triangle of the matrix is used. No check is performed to ensure
+    /// that the given matrix is truly symmetric or positive-semidefinite.
+    #[inline]
+    #[must_use]
+    pub const fn from_mat3_unchecked(mat: Mat3) -> Self {
+        Self(SymmetricMat3::from_mat3_unchecked(mat))
+    }
+    /// Returns the angular inertia tensor as a [`SymmetricMat3`].
     ///
     /// Equivalent to [`value`](AngularInertiaTensor::value).
     #[doc(alias = "as_tensor")]
     #[inline]
-    pub fn as_mat3(&self) -> Mat3 {
+    pub fn as_symmetric_mat3(&self) -> SymmetricMat3 {
         self.0
     }
 
-    /// Returns a mutable reference to the [`Mat3`] stored in `self`.
-    ///
-    /// Note that this allows making changes that could make the angular inertia tensor invalid
-    /// (non-symmetric or non-positive-semidefinite).
+    /// Returns a mutable reference to the [`SymmetricMat3`] stored in `self`.
     ///
     /// Equivalent to [`value_mut`](AngularInertiaTensor::value_mut).
     #[doc(alias = "as_tensor_mut")]
     #[inline]
-    pub fn as_mat3_mut(&mut self) -> &mut Mat3 {
+    pub fn as_symmetric_mat3_mut(&mut self) -> &mut SymmetricMat3 {
+        &mut self.0
+    }
+
+    /// Returns the angular inertia tensor as a [`SymmetricMat3`].
+    ///
+    /// Equivalent to [`as_symmetric_mat3`](AngularInertiaTensor::as_symmetric_mat3).
+    #[inline]
+    pub fn value(self) -> SymmetricMat3 {
+        self.0
+    }
+
+    /// Returns a mutable reference to the [`SymmetricMat3`] stored in `self`.
+    ///
+    /// Equivalent to [`as_symmetric_mat3_mut`](AngularInertiaTensor::as_symmetric_mat3_mut).
+    #[inline]
+    pub fn value_mut(&mut self) -> &mut SymmetricMat3 {
         &mut self.0
     }
 
     /// Returns the angular inertia tensor as a [`Mat3`].
-    ///
-    /// Equivalent to [`as_mat3`](AngularInertiaTensor::as_mat3).
+    #[doc(alias = "to_tensor")]
     #[inline]
-    pub fn value(self) -> Mat3 {
-        self.0
-    }
-
-    /// Returns a mutable reference to the [`Mat3`] stored in `self`.
-    ///
-    /// Note that this allows making changes that could make the angular inertia tensor invalid
-    /// (non-symmetric or non-positive-semidefinite).
-    ///
-    /// Equivalent to [`as_mat3_mut`](AngularInertiaTensor::as_mat3_mut).
-    #[inline]
-    pub fn value_mut(&mut self) -> &mut Mat3 {
-        &mut self.0
+    pub fn to_mat3(&self) -> Mat3 {
+        self.0.to_mat3()
     }
 
     /// Returns the inverse of the angular inertia tensor.
@@ -261,7 +292,7 @@ impl AngularInertiaTensor {
     #[inline]
     pub fn rotated(self, rotation: Quat) -> Self {
         let rot_mat3 = Mat3::from_quat(rotation);
-        Self::from_mat3((rot_mat3 * self.0) * rot_mat3.transpose())
+        Self::from_mat3_unchecked((rot_mat3 * self.0) * rot_mat3.transpose())
     }
 
     /// Computes the angular inertia tensor shifted by the given offset, taking into account the given mass.
@@ -273,24 +304,40 @@ impl AngularInertiaTensor {
             let diagonal_mat = Mat3::from_diagonal(Vec3::splat(diagonal_element));
             let offset_outer_product =
                 Mat3::from_cols(offset * offset.x, offset * offset.y, offset * offset.z);
-            Self::from_mat3(self.0 + mass * (diagonal_mat - offset_outer_product))
+            Self::from_mat3_unchecked(self.0 + mass * (diagonal_mat - offset_outer_product))
         } else {
             self
         }
     }
 }
 
-impl From<Mat3> for AngularInertiaTensor {
+impl From<SymmetricMat3> for AngularInertiaTensor {
     #[inline]
-    fn from(angular_inertia: Mat3) -> Self {
-        Self::from_mat3(angular_inertia)
+    fn from(angular_inertia: SymmetricMat3) -> Self {
+        Self::from_symmetric_mat3(angular_inertia)
+    }
+}
+
+impl TryFrom<Mat3> for AngularInertiaTensor {
+    type Error = MatConversionError;
+
+    #[inline]
+    fn try_from(angular_inertia: Mat3) -> Result<Self, Self::Error> {
+        Self::try_from_mat3(angular_inertia)
+    }
+}
+
+impl From<AngularInertiaTensor> for SymmetricMat3 {
+    #[inline]
+    fn from(angular_inertia: AngularInertiaTensor) -> Self {
+        angular_inertia.0
     }
 }
 
 impl From<AngularInertiaTensor> for Mat3 {
     #[inline]
     fn from(angular_inertia: AngularInertiaTensor) -> Self {
-        angular_inertia.0
+        angular_inertia.0.to_mat3()
     }
 }
 
@@ -376,7 +423,7 @@ impl approx::AbsDiffEq for AngularInertiaTensor {
         f32::EPSILON
     }
     fn abs_diff_eq(&self, other: &Self, epsilon: f32) -> bool {
-        self.0.abs_diff_eq(other.0, epsilon)
+        self.0.abs_diff_eq(&other.0, epsilon)
     }
 }
 
