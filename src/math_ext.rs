@@ -1,7 +1,6 @@
 //! Extension traits for math types.
 
 use bevy_math::*;
-use bevy_math_extensions::*;
 
 /// An extension trait for computing reciprocals without division by zero.
 pub trait RecipOrZero {
@@ -65,78 +64,5 @@ impl RecipOrZero for DVec3 {
             self.y.recip_or_zero(),
             self.z.recip_or_zero(),
         )
-    }
-}
-
-/// An extension trait for matrix types.
-pub trait MatExt {
-    /// Computes the inverse of `self` if `self` is not zero,
-    /// and returns zero otherwise to avoid division by zero.
-    fn inverse_or_zero(self) -> Self;
-}
-
-impl MatExt for Mat2 {
-    #[inline]
-    fn inverse_or_zero(self) -> Self {
-        if self.determinant() == 0.0 {
-            Self::ZERO
-        } else {
-            self.inverse()
-        }
-    }
-}
-
-impl MatExt for DMat2 {
-    #[inline]
-    fn inverse_or_zero(self) -> Self {
-        if self.determinant() == 0.0 {
-            Self::ZERO
-        } else {
-            self.inverse()
-        }
-    }
-}
-
-impl MatExt for Mat3 {
-    #[inline]
-    fn inverse_or_zero(self) -> Self {
-        if self.determinant() == 0.0 {
-            Self::ZERO
-        } else {
-            self.inverse()
-        }
-    }
-}
-
-impl MatExt for DMat3 {
-    #[inline]
-    fn inverse_or_zero(self) -> Self {
-        if self.determinant() == 0.0 {
-            Self::ZERO
-        } else {
-            self.inverse()
-        }
-    }
-}
-
-impl MatExt for SymmetricMat2 {
-    #[inline]
-    fn inverse_or_zero(self) -> Self {
-        if self.determinant() == 0.0 {
-            Self::ZERO
-        } else {
-            self.inverse()
-        }
-    }
-}
-
-impl MatExt for SymmetricMat3 {
-    #[inline]
-    fn inverse_or_zero(self) -> Self {
-        if self.determinant() == 0.0 {
-            Self::ZERO
-        } else {
-            self.inverse()
-        }
     }
 }

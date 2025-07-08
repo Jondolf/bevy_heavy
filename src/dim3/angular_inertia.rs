@@ -1,12 +1,9 @@
 use core::ops::*;
 
-use crate::MatExt;
 use bevy_math::{Mat3, Quat, Vec3};
-use bevy_math_extensions::{MatConversionError, SymmetricMat3};
 #[cfg(all(feature = "bevy_reflect", feature = "serialize"))]
 use bevy_reflect::{ReflectDeserialize, ReflectSerialize};
-
-use super::SymmetricEigen3;
+use glam_mat_extensions::{MatConversionError, SymmetricEigen3, SymmetricMat3};
 
 // TODO: Add errors for asymmetric and non-positive-semidefinite matrices.
 /// An error returned for an invalid [`AngularInertiaTensor`] in 3D.

@@ -10,9 +10,6 @@ pub use angular_inertia::{AngularInertiaTensor, AngularInertiaTensorError};
 /// [`ComputeMassProperties3d`] implementations for 3D geometric primitives.
 mod impls;
 
-mod eigen3;
-pub use eigen3::SymmetricEigen3;
-
 use crate::RecipOrZero;
 
 /// A trait for computing [`MassProperties3d`] for 3D objects.
