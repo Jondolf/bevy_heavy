@@ -172,6 +172,7 @@ impl AngularInertiaTensor {
     /// [tensor]: https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
     /// [positive-semidefinite]: https://en.wikipedia.org/wiki/Definite_matrix
     #[inline]
+    #[must_use]
     #[doc(alias = "from_tensor")]
     pub const fn from_symmetric_mat3(mat: SymmetricMat3) -> Self {
         Self(mat)
@@ -189,7 +190,6 @@ impl AngularInertiaTensor {
     ///
     /// Returns a [`MatConversionError`] if the given matrix is not symmetric.
     #[inline]
-    #[doc(alias = "from_tensor")]
     pub fn try_from_mat3(mat: Mat3) -> Result<Self, MatConversionError> {
         SymmetricMat3::try_from_mat3(mat).map(Self)
     }
@@ -204,11 +204,12 @@ impl AngularInertiaTensor {
     pub const fn from_mat3_unchecked(mat: Mat3) -> Self {
         Self(SymmetricMat3::from_mat3_unchecked(mat))
     }
+
     /// Returns the angular inertia tensor as a [`SymmetricMat3`].
     ///
     /// Equivalent to [`value`](AngularInertiaTensor::value).
-    #[doc(alias = "as_tensor")]
     #[inline]
+    #[doc(alias = "as_tensor")]
     pub fn as_symmetric_mat3(&self) -> SymmetricMat3 {
         self.0
     }
@@ -216,8 +217,8 @@ impl AngularInertiaTensor {
     /// Returns a mutable reference to the [`SymmetricMat3`] stored in `self`.
     ///
     /// Equivalent to [`value_mut`](AngularInertiaTensor::value_mut).
-    #[doc(alias = "as_tensor_mut")]
     #[inline]
+    #[doc(alias = "as_tensor_mut")]
     pub fn as_symmetric_mat3_mut(&mut self) -> &mut SymmetricMat3 {
         &mut self.0
     }
@@ -239,8 +240,8 @@ impl AngularInertiaTensor {
     }
 
     /// Returns the angular inertia tensor as a [`Mat3`].
-    #[doc(alias = "to_tensor")]
     #[inline]
+    #[doc(alias = "to_tensor")]
     pub fn to_mat3(&self) -> Mat3 {
         self.0.to_mat3()
     }
