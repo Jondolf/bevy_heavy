@@ -6,8 +6,9 @@ use bevy_math::{
         BoxedPolyline3d, Capsule3d, Cone, ConicalFrustum, Cuboid, Cylinder, Line3d, Measured3d,
         Plane3d, Polyline3d, Segment3d, Sphere, Torus,
     },
-    FloatPow, Mat3, Quat, Vec3,
+    FloatPow, Quat, Vec3,
 };
+use glam_matrix_extensions::SymmetricMat3;
 
 impl ComputeMassProperties3d for Sphere {
     #[inline]
@@ -548,9 +549,8 @@ impl ComputeMassProperties3d for Tetrahedron {
             + x4 * y4 * 2.0)
             * 0.05;
 
-        AngularInertiaTensor::from_mat3(Mat3::from_cols_array(&[
-            a0, -b1, -c1, -b1, b0, -a1, -c1, -a1, c0,
-        ]))
+        // TODO: Are -b1 and -c1 flipped here?
+        AngularInertiaTensor::from_symmetric_mat3(SymmetricMat3::new(a0, -b1, -c1, b0, -a1, c0))
     }
 
     #[inline]

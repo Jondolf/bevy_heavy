@@ -10,9 +10,6 @@ pub use angular_inertia::{AngularInertiaTensor, AngularInertiaTensorError};
 /// [`ComputeMassProperties3d`] implementations for 3D geometric primitives.
 mod impls;
 
-mod eigen3;
-pub use eigen3::SymmetricEigen3;
-
 use crate::RecipOrZero;
 
 /// A trait for computing [`MassProperties3d`] for 3D objects.
@@ -260,7 +257,7 @@ impl MassProperties3d {
         lhs.y_axis *= self.principal_angular_inertia.y;
         lhs.z_axis *= self.principal_angular_inertia.z;
 
-        AngularInertiaTensor::from_mat3(lhs * rhs)
+        AngularInertiaTensor::from_mat3_unchecked(lhs * rhs)
     }
 
     /// Returns the mass properties transformed by the given [isometry].
@@ -330,7 +327,9 @@ impl core::ops::Add for MassProperties3d {
         // Compute the new principal angular inertia, taking the new center of mass into account.
         let i1 = self.shifted_angular_inertia_tensor(new_center_of_mass - self.center_of_mass);
         let i2 = other.shifted_angular_inertia_tensor(new_center_of_mass - other.center_of_mass);
-        let new_angular_inertia = AngularInertiaTensor::from_mat3(i1.as_mat3() + i2.as_mat3());
+        let new_angular_inertia = AngularInertiaTensor::from_symmetric_mat3(
+            i1.as_symmetric_mat3() + i2.as_symmetric_mat3(),
+        );
 
         Self::new_with_angular_inertia_tensor(new_mass, new_angular_inertia, new_center_of_mass)
     }
@@ -372,7 +371,9 @@ impl core::ops::Sub for MassProperties3d {
         // Compute the new principal angular inertia, taking the new center of mass into account.
         let i1 = self.shifted_angular_inertia_tensor(new_center_of_mass - self.center_of_mass);
         let i2 = other.shifted_angular_inertia_tensor(new_center_of_mass - other.center_of_mass);
-        let new_angular_inertia = AngularInertiaTensor::from_mat3(i1.as_mat3() - i2.as_mat3());
+        let new_angular_inertia = AngularInertiaTensor::from_symmetric_mat3(
+            i1.as_symmetric_mat3() - i2.as_symmetric_mat3(),
+        );
 
         Self::new_with_angular_inertia_tensor(new_mass, new_angular_inertia, new_center_of_mass)
     }
