@@ -24,35 +24,31 @@ default = ["std", "2d", "3d", "bevy_reflect"]
 bevy_reflect = [
     "dep:bevy_reflect",
     "bevy_math/bevy_reflect",
-    "glam_mat_extensions/bevy_reflect",
+    "glam_matrix_extensions/bevy_reflect",
 ]
 
 # Enable data serialization/deserialization using `serde`.
-serialize = [
-    "dep:serde",
-    "bevy_math/serialize",
-    "glam_mat_extensions/serialize",
-]
+serialize = ["dep:serde", "bevy_math/serialize", "glam_matrix_extensions/serde"]
 
 # Enable `approx` to approximate floating point equality comparisons and assertions for types.
-approx = ["dep:approx", "bevy_math/approx", "glam_mat_extensions/approx"]
+approx = ["dep:approx", "bevy_math/approx", "glam_matrix_extensions/approx"]
 
 # Enable libm mathematical functions for glam types to ensure consistent outputs
 # across platforms at the cost of losing hardware-level optimization using intrinsics.
-libm = ["bevy_math/libm", "glam_mat_extensions/libm"]
+libm = ["bevy_math/libm", "glam_matrix_extensions/libm"]
 
 # Enable libm mathematical functions as a fallback for no_std environments.
 # Can be overridden with std feature.
-nostd-libm = ["bevy_math/nostd-libm", "glam_mat_extensions/nostd-libm"]
+nostd-libm = ["bevy_math/nostd-libm", "glam_matrix_extensions/nostd-libm"]
 
 # Enable the Rust standard library.
-std = ["bevy_math/std", "glam_mat_extensions/std"]
+std = ["bevy_math/std", "glam_matrix_extensions/std"]
 
 [dependencies]
 # Math
 approx = { version = "0.5", optional = true }
 bevy_math = { version = "0.16", default-features = false }
-glam_mat_extensions = { git = "https://github.com/Jondolf/glam_mat_extensions", default-features = false, features = [
+glam_matrix_extensions = { git = "https://github.com/Jondolf/glam_matrix_extensions", default-features = false, features = [
     "f32",
 ] }
 

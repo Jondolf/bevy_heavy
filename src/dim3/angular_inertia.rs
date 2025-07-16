@@ -3,9 +3,8 @@ use core::ops::*;
 use bevy_math::{Mat3, Quat, Vec3};
 #[cfg(all(feature = "bevy_reflect", feature = "serialize"))]
 use bevy_reflect::{ReflectDeserialize, ReflectSerialize};
-use glam_mat_extensions::{MatConversionError, SymmetricEigen3, SymmetricMat3};
+use glam_matrix_extensions::{MatConversionError, SymmetricEigen3, SymmetricMat3};
 
-// TODO: Add errors for asymmetric and non-positive-semidefinite matrices.
 /// An error returned for an invalid [`AngularInertiaTensor`] in 3D.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AngularInertiaTensorError {
@@ -15,8 +14,6 @@ pub enum AngularInertiaTensorError {
     Nan,
 }
 
-// TODO: The matrix should be symmetric and positive-semidefinite.
-//       We could add a custom `SymmetricMat3` type to enforce symmetricity and reduce memory usage.
 /// The 3x3 [angular inertia] tensor of a 3D object, representing resistance to angular acceleration.
 ///
 /// The [inertia tensor] is a [symmetric], [positive-semidefinite] matrix that describes the moment of inertia
