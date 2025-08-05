@@ -366,7 +366,7 @@ impl core::ops::Sub for MassProperties3d {
 
         // The new center of mass is the negated weighted average of the centers of masses of `self` and `other`.
         let new_center_of_mass =
-            (self.center_of_mass * mass1 - other.center_of_mass * mass2) / new_mass;
+            (self.center_of_mass * mass1 - other.center_of_mass * mass2) * new_mass.recip_or_zero();
 
         // Compute the new principal angular inertia, taking the new center of mass into account.
         let i1 = self.shifted_angular_inertia_tensor(new_center_of_mass - self.center_of_mass);
@@ -403,12 +403,17 @@ impl core::iter::Sum for MassProperties3d {
         }
 
         if total_mass > 0.0 {
-            total_center_of_mass /= total_mass;
+            total_center_of_mass *= total_mass.recip_or_zero();
         }
 
         for props in all_properties {
             total_angular_inertia +=
                 props.shifted_angular_inertia_tensor(total_center_of_mass - props.center_of_mass);
+        }
+
+        if !total_center_of_mass.is_finite() {
+            // The center of mass can be non-finite if the mass is non-finite.
+            total_center_of_mass = Vec3::ZERO;
         }
 
         Self::new_with_angular_inertia_tensor(

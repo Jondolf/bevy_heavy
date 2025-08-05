@@ -292,12 +292,17 @@ impl core::iter::Sum for MassProperties2d {
         }
 
         if total_mass > 0.0 {
-            total_center_of_mass /= total_mass;
+            total_center_of_mass *= total_mass.recip_or_zero();
         }
 
         for props in all_properties {
             total_angular_inertia +=
                 props.shifted_angular_inertia(total_center_of_mass - props.center_of_mass);
+        }
+
+        if !total_center_of_mass.is_finite() {
+            // The center of mass can be non-finite if the mass is non-finite.
+            total_center_of_mass = Vec2::ZERO;
         }
 
         Self::new(total_mass, total_angular_inertia, total_center_of_mass)
